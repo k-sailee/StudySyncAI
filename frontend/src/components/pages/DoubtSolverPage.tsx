@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import axios from "axios";
+
 
 interface Message {
   id: number;
@@ -37,87 +39,59 @@ export function DoubtSolverPage() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  
+  
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+};
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+  if (!inputValue.trim()) return;
 
-    const userMessage: Message = {
-      id: messages.length + 1,
-      type: "user",
-      content: inputValue,
+  const userMessage: Message = {
+    id: messages.length + 1,
+    type: "user",
+    content: inputValue,
+    timestamp: new Date(),
+  };
+
+  setMessages((prev) => [...prev, userMessage]);
+  setInputValue("");
+  setIsTyping(true);
+
+  try {
+    const response = await axios.post(
+  "http://localhost:5000/api/ai/ask",
+  { message: inputValue }
+);
+
+const aiResponse: Message = {
+  id: messages.length + 2,
+  type: "ai",
+  content: response.data.answer,
+  timestamp: new Date(),
+};
+
+
+    setMessages((prev) => [...prev, aiResponse]);
+  } catch (error) {
+    const errorMessage: Message = {
+      id: messages.length + 2,
+      type: "ai",
+      content: "Sorry, I couldn't process your request. Please try again later.",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
-    setIsTyping(true);
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: messages.length + 2,
-        type: "ai",
-        content: getAIResponse(inputValue),
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const getAIResponse = (question: string): string => {
-    // Simulated AI responses
-    if (question.toLowerCase().includes("derivative") || question.toLowerCase().includes("sin")) {
-      return `Great question! The derivative of sin(x) is cos(x). 
-
-Here's the step-by-step explanation:
-1. **Definition**: The derivative measures the rate of change of a function
-2. **For sin(x)**: Using the limit definition, we get d/dx[sin(x)] = cos(x)
-3. **Remember**: This is one of the fundamental derivatives you should memorize
-
-**Key tip**: The derivative of cos(x) is -sin(x), so they form a cycle!
-
-Would you like me to explain how to derive this from first principles?`;
-    }
-    
-    if (question.toLowerCase().includes("newton") || question.toLowerCase().includes("law")) {
-      return `Newton's Third Law states: **"For every action, there is an equal and opposite reaction."**
-
-This means:
-- When object A exerts a force on object B, object B simultaneously exerts an equal and opposite force on object A
-- These forces always come in pairs
-- The forces act on different objects
-
-**Real-world examples**:
-1. 🚀 Rocket propulsion - gases push down, rocket goes up
-2. 🏊 Swimming - you push water backward, it pushes you forward
-3. 🚶 Walking - you push the ground backward, it pushes you forward
-
-Would you like me to solve a problem using this law?`;
-    }
-
-    return `That's an interesting question! Let me help you understand this concept.
-
-Based on your question about "${question}", here are some key points to consider:
-
-1. **Understanding the basics**: Start by reviewing the fundamental concepts related to this topic
-2. **Practice problems**: Working through examples will help reinforce your understanding
-3. **Connect to real-world applications**: Try to relate this to everyday situations
-
-Would you like me to:
-- Explain this concept in more detail?
-- Provide practice problems?
-- Share related topics to explore?
-
-Feel free to ask follow-up questions!`;
-  };
+    setMessages((prev) => [...prev, errorMessage]);
+  } finally {
+    setIsTyping(false);
+  }
+};
 
   const handleSuggestedQuestion = (question: string) => {
     setInputValue(question);
