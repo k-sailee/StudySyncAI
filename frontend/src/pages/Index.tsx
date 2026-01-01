@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
 import { ClassesSection } from "@/components/dashboard/ClassesSection";
@@ -10,18 +11,40 @@ import { RecordedLessonsPage } from "@/components/pages/RecordedLessonsPage";
 import { TasksPage } from "@/components/pages/TasksPage";
 import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
 import { TeacherDashboardPage } from "@/components/pages/TeacherDashboardPage";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [userRole, setUserRole] = useState<"student" | "teacher">("student");
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleRoleChange = (role: "student" | "teacher") => {
-    setUserRole(role);
-    // Reset to appropriate dashboard when switching roles
-    if (role === "teacher") {
-      setActiveSection("teacher-dashboard");
-    } else {
-      setActiveSection("dashboard");
+  const userRole = user?.role || "student";
+  const userName = user?.displayName || (userRole === "teacher" ? "Prof. Smith" : "John Doe");
+
+  // Initialize to correct dashboard based on role
+  const getInitialSection = () => {
+    if (!activeSection || activeSection === "dashboard") {
+      return userRole === "teacher" ? "teacher-dashboard" : "dashboard";
+    }
+    return activeSection;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
     }
   };
 
@@ -32,7 +55,7 @@ const Index = () => {
         case "teacher-dashboard":
           return (
             <div className="space-y-6">
-              <WelcomeSection userName="Prof. Smith" role="teacher" />
+              <WelcomeSection userName={userName} role="teacher" />
               <TeacherDashboardPage />
             </div>
           );
@@ -45,7 +68,7 @@ const Index = () => {
         default:
           return (
             <div className="space-y-6">
-              <WelcomeSection userName="Prof. Smith" role="teacher" />
+              <WelcomeSection userName={userName} role="teacher" />
               <TeacherDashboardPage />
             </div>
           );
@@ -67,7 +90,7 @@ const Index = () => {
         return (
           <div className="flex gap-6">
             <div className="flex-1 min-w-0 space-y-6">
-              <WelcomeSection userName="John" role="student" />
+              <WelcomeSection userName={userName} role="student" />
               <ClassesSection />
               <div className="grid lg:grid-cols-2 gap-6">
                 <LessonsTable />
@@ -82,10 +105,11 @@ const Index = () => {
 
   return (
     <DashboardLayout 
-      activeSection={activeSection} 
+      activeSection={getInitialSection()} 
       onSectionChange={setActiveSection}
       userRole={userRole}
-      onRoleChange={handleRoleChange}
+      showRoleSwitcher={false}
+      onLogout={handleLogout}
     >
       {renderContent()}
     </DashboardLayout>

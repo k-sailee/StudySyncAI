@@ -33,6 +33,8 @@ interface DashboardLayoutProps {
   onSectionChange: (section: string) => void;
   userRole?: "student" | "teacher";
   onRoleChange?: (role: "student" | "teacher") => void;
+  onLogout?: () => void;
+  showRoleSwitcher?: boolean;
 }
 
 const studentNavItems = [
@@ -63,7 +65,9 @@ export function DashboardLayout({
   activeSection, 
   onSectionChange,
   userRole = "student",
-  onRoleChange
+  onRoleChange,
+  onLogout,
+  showRoleSwitcher = false
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -114,7 +118,7 @@ export function DashboardLayout({
         </div>
 
         {/* Role Switcher */}
-        {onRoleChange && (
+        {showRoleSwitcher && onRoleChange && (
           <div className="p-4 border-b border-border">
             <div className="flex gap-2 p-1 bg-accent/50 rounded-xl">
               <button
@@ -212,7 +216,7 @@ export function DashboardLayout({
               <p className="font-medium text-sm truncate">{userName}</p>
               <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
             </div>
-            <Button variant="ghost" size="icon" className="shrink-0">
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={onLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
