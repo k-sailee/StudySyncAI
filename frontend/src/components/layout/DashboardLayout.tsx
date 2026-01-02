@@ -15,17 +15,18 @@ import {
   X,
   LogOut,
   Bell,
-  Search,
   ChevronRight,
   GraduationCap,
   ClipboardList,
-  User
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { SearchBar } from "@/components/SearchBar";
+import { UserProfileModal } from "@/components/UserProfileModal";
+import { UserSearchResult } from "@/services/userService";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -39,6 +40,7 @@ interface DashboardLayoutProps {
 
 const studentNavItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "connections", label: "My Teachers", icon: UserPlus },
   { id: "classes", label: "Classes", icon: BookOpen },
   { id: "live-lessons", label: "Live Lessons", icon: Video, badge: "Live" },
   { id: "recorded-lessons", label: "Recorded Lessons", icon: PlayCircle },
@@ -52,6 +54,7 @@ const studentNavItems = [
 
 const teacherNavItems = [
   { id: "teacher-dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "connections", label: "My Students", icon: UserPlus },
   { id: "my-classes", label: "My Classes", icon: BookOpen },
   { id: "live-sessions", label: "Live Sessions", icon: Video, badge: "2" },
   { id: "assignments", label: "Assignments", icon: ClipboardList, badge: "12" },
@@ -70,13 +73,29 @@ export function DashboardLayout({
   showRoleSwitcher = false
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   const navigationItems = userRole === "teacher" ? teacherNavItems : studentNavItems;
   const userName = userRole === "teacher" ? "Prof. Smith" : "John Doe";
   const userInitials = userRole === "teacher" ? "PS" : "JD";
 
+  const handleUserSelect = (user: UserSearchResult) => {
+    setSelectedUser(user);
+    setIsProfileModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background flex w-full">
+      {/* User Profile Modal */}
+      <UserProfileModal
+        user={selectedUser}
+        isOpen={isProfileModalOpen}
+        onClose={() => {
+          setIsProfileModalOpen(false);
+          setSelectedUser(null);
+        }}
+      />
       {/* Mobile Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -237,11 +256,10 @@ export function DashboardLayout({
               <Menu className="w-5 h-5" />
             </Button>
             
-            <div className="hidden sm:flex relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={userRole === "teacher" ? "Search students, classes..." : "Search classes, tasks, or lessons..."}
-                className="pl-10 w-64 lg:w-80 bg-accent/50 border-transparent focus:border-primary"
+            <div className="hidden sm:block">
+              <SearchBar
+                placeholder={userRole === "teacher" ? "Search students..." : "Search teachers..."}
+                onUserSelect={handleUserSelect}
               />
             </div>
           </div>

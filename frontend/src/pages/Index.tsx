@@ -11,6 +11,7 @@ import { RecordedLessonsPage } from "@/components/pages/RecordedLessonsPage";
 import { TasksPage } from "@/components/pages/TasksPage";
 import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
 import { TeacherDashboardPage } from "@/components/pages/TeacherDashboardPage";
+import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,6 +50,11 @@ const Index = () => {
   };
 
   const renderContent = () => {
+    // Shared sections (both teacher and student)
+    if (activeSection === "connections") {
+      return <ConnectionsPage />;
+    }
+
     // Teacher sections
     if (userRole === "teacher") {
       switch (activeSection) {
