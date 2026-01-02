@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { UserSearchResult, createConnection } from "@/services/userService";
+import { UserSearchResult, createConnection, getConnections } from "@/services/userService";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,6 +34,33 @@ export function UserProfileModal({ user, isOpen, onClose }: UserProfileModalProp
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Check for existing connections when modal opens
+  useEffect(() => {
+    if (isOpen && user && currentUser) {
+      checkExistingConnection();
+    }
+  }, [isOpen, user, currentUser]);
+
+  const checkExistingConnection = async () => {
+    if (!currentUser || !user) return;
+
+    try {
+      const connections = await getConnections(currentUser.uid, currentUser.role);
+      const existingConnection = connections.find((conn) => {
+        const otherUser = currentUser.role === "teacher" ? conn.student : conn.teacher;
+        return otherUser?.uid === user.uid && (conn.status === "pending" || conn.status === "accepted");
+      });
+
+      if (existingConnection) {
+        setIsConnected(true);
+      } else {
+        setIsConnected(false);
+      }
+    } catch (error) {
+      console.error("Error checking existing connection:", error);
+    }
+  };
 
   if (!user) return null;
 
@@ -95,7 +122,7 @@ export function UserProfileModal({ user, isOpen, onClose }: UserProfileModalProp
 
   const handleClose = () => {
     setMessage("");
-    setIsConnected(false);
+    // Don't reset isConnected here since we want to persist the state
     onClose();
   };
 
