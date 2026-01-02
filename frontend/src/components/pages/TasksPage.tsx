@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckSquare, Plus, Calendar, Flag, Clock, Edit2, Trash2, 
@@ -24,9 +24,24 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/config/firebase";
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where, 
+  onSnapshot,
+  Timestamp 
+} from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 interface Task {
-  id: number;
+  id: string;
+  userId: string;
   title: string;
   subject: string;
   description: string;
@@ -34,66 +49,155 @@ interface Task {
   priority: "high" | "medium" | "low";
   status: "pending" | "in-progress" | "completed";
   progress: number;
+  createdAt: Timestamp;
 }
 
-const initialTasks: Task[] = [
-  {
-    id: 1,
-    title: "Complete Math Assignment - Chapter 5",
-    subject: "Mathematics",
-    description: "Solve all exercises from chapter 5 on integration techniques",
-    deadline: "Today, 6:00 PM",
-    priority: "high",
-    status: "in-progress",
-    progress: 60,
-  },
-  {
-    id: 2,
-    title: "Physics Lab Report",
-    subject: "Physics",
-    description: "Write a detailed report on the pendulum experiment",
-    deadline: "Tomorrow, 11:00 AM",
-    priority: "medium",
-    status: "pending",
-    progress: 0,
-  },
-  {
-    id: 3,
-    title: "English Essay - Shakespeare Analysis",
-    subject: "English",
-    description: "2000-word essay analyzing themes in Hamlet",
-    deadline: "May 18, 2024",
-    priority: "medium",
-    status: "in-progress",
-    progress: 40,
-  },
-  {
-    id: 4,
-    title: "Computer Science Project",
-    subject: "Computer Science",
-    description: "Build a simple sorting algorithm visualizer",
-    deadline: "May 20, 2024",
-    priority: "low",
-    status: "pending",
-    progress: 0,
-  },
-  {
-    id: 5,
-    title: "Chemistry Quiz Preparation",
-    subject: "Chemistry",
-    description: "Review chapters 3-5 for upcoming quiz",
-    deadline: "May 15, 2024",
-    priority: "high",
-    status: "completed",
-    progress: 100,
-  },
-];
+const initialTasks: Task[] = [];
 
 export function TasksPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    subject: "",
+    description: "",
+    deadline: "",
+    priority: "medium" as "high" | "medium" | "low",
+  });
+
+  // Load tasks from Firestore
+  useEffect(() => {
+    if (!user) {
+      console.log("No user found, skipping task load");
+      setLoading(false);
+      return;
+    }
+
+    console.log("Loading tasks for user:", user.uid);
+
+    try {
+      const tasksRef = collection(db, "tasks");
+      // Start with simpler query without orderBy to avoid composite index requirement
+      // Client-side sorting will be done instead
+      const q = query(
+        tasksRef,
+        where("userId", "==", user.uid)
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log("Tasks snapshot received:", snapshot.docs.length, "documents");
+        const tasksData = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .sort((a: any, b: any) => {
+            // Client-side sort by createdAt descending
+            return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+          }) as Task[];
+        setTasks(tasksData);
+        setLoading(false);
+      }, (error: any) => {
+        console.error("Error loading tasks - Full error:", {
+          code: error.code,
+          message: error.message,
+          details: error
+        });
+        
+        let errorMessage = "Failed to load tasks. Please try again.";
+        if (error.code === "permission-denied") {
+          errorMessage = "Permission denied. Check Firestore rules.";
+        } else if (error.code === "invalid-argument") {
+          errorMessage = "Invalid query. Retrying without index...";
+        } else if (error.code === "unavailable") {
+          errorMessage = "Firestore is currently unavailable.";
+        } else if (error.code === "failed-precondition") {
+          errorMessage = "Firestore needs to create an index. This usually takes a few minutes.";
+        }
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (error: any) {
+      console.error("Error setting up task listener:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize task loading.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  // Add new task
+  const handleAddTask = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add tasks.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a task title.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "tasks"), {
+        userId: user.uid,
+        title: formData.title,
+        subject: formData.subject || "General",
+        description: formData.description,
+        deadline: formData.deadline || "No deadline",
+        priority: formData.priority,
+        status: "pending",
+        progress: 0,
+        createdAt: Timestamp.now(),
+      });
+
+      toast({
+        title: "Success",
+        description: "Task added successfully!",
+      });
+
+      // Reset form
+      setFormData({
+        title: "",
+        subject: "",
+        description: "",
+        deadline: "",
+        priority: "medium",
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredTasks = tasks.filter(task => {
     const statusMatch = filter === "all" || task.status === filter;
@@ -101,21 +205,49 @@ export function TasksPage() {
     return statusMatch && priorityMatch;
   });
 
-  const toggleTaskStatus = (id: number) => {
-    setTasks(tasks.map(task => {
-      if (task.id === id) {
-        if (task.status === "completed") {
-          return { ...task, status: "pending" as const, progress: 0 };
-        } else {
-          return { ...task, status: "completed" as const, progress: 100 };
-        }
-      }
-      return task;
-    }));
+  const toggleTaskStatus = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    try {
+      const taskRef = doc(db, "tasks", id);
+      const newStatus = task.status === "completed" ? "pending" : "completed";
+      const newProgress = newStatus === "completed" ? 100 : 0;
+
+      await updateDoc(taskRef, {
+        status: newStatus,
+        progress: newProgress,
+      });
+
+      toast({
+        title: "Success",
+        description: `Task marked as ${newStatus}`,
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteTask = (id: number) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  const deleteTask = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "tasks", id));
+      toast({
+        title: "Success",
+        description: "Task deleted successfully!",
+      });
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -145,6 +277,15 @@ export function TasksPage() {
 
   return (
     <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading tasks...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl lg:text-3xl font-bold">My Tasks</h1>
@@ -170,30 +311,50 @@ export function TasksPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Task Title</Label>
-                  <Input placeholder="Enter task title..." />
+                  <Input 
+                    placeholder="Enter task title..." 
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Subject</Label>
-                  <Select>
+                  <Select 
+                    value={formData.subject} 
+                    onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="math">Mathematics</SelectItem>
-                      <SelectItem value="physics">Physics</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="cs">Computer Science</SelectItem>
+                      <SelectItem value="Mathematics">Mathematics</SelectItem>
+                      <SelectItem value="Physics">Physics</SelectItem>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Chemistry">Chemistry</SelectItem>
+                      <SelectItem value="Biology">Biology</SelectItem>
+                      <SelectItem value="History">History</SelectItem>
+                      <SelectItem value="General">General</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea placeholder="Task description..." />
+                  <Textarea 
+                    placeholder="Task description..." 
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Priority</Label>
-                    <Select>
+                    <Select 
+                      value={formData.priority} 
+                      onValueChange={(value: "high" | "medium" | "low") => 
+                        setFormData({ ...formData, priority: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
@@ -206,10 +367,19 @@ export function TasksPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Deadline</Label>
-                    <Input type="date" />
+                    <Input 
+                      type="date" 
+                      value={formData.deadline}
+                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                    />
                   </div>
                 </div>
-                <Button className="w-full gradient-bg">Create Task</Button>
+                <Button 
+                  className="w-full gradient-bg" 
+                  onClick={handleAddTask}
+                >
+                  Create Task
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -376,6 +546,8 @@ export function TasksPage() {
           </motion.div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
