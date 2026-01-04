@@ -14,6 +14,13 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
+    // Schedules collection - users can only access their own schedules
+    match /schedules/{scheduleId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

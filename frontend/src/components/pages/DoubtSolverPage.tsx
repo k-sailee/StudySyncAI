@@ -66,20 +66,20 @@ export function DoubtSolverPage() {
 
   try {
     const response = await axios.post(
-  "http://localhost:5000/api/ai/ask",
-  { message: inputValue }
-);
+      "/api/ai/ask",
+      { message: inputValue }
+    );
 
-const aiResponse: Message = {
-  id: messages.length + 2,
-  type: "ai",
-  content: response.data.answer,
-  timestamp: new Date(),
-};
-
+    const aiResponse: Message = {
+      id: messages.length + 2,
+      type: "ai",
+      content: response.data.answer,
+      timestamp: new Date(),
+    };
 
     setMessages((prev) => [...prev, aiResponse]);
   } catch (error) {
+    console.error("Error sending message:", error);
     const errorMessage: Message = {
       id: messages.length + 2,
       type: "ai",
