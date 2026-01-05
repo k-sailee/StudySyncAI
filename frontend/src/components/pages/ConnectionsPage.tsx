@@ -38,6 +38,13 @@ export function ConnectionsPage() {
     }
   }, [user]);
 
+  // Listen for global connection created events to refresh list
+  useEffect(() => {
+    const handler = () => fetchConnections();
+    window.addEventListener("connection:created", handler as EventListener);
+    return () => window.removeEventListener("connection:created", handler as EventListener);
+  }, [user]);
+
   const fetchConnections = async () => {
     if (!user) return;
     

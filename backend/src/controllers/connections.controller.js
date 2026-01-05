@@ -49,6 +49,40 @@ export const createConnection = async (req, res) => {
 
     const connectionRef = await db.collection("connections").add(connectionData);
 
+    // Also store lightweight references under each user's subcollection
+    // so UI or other endpoints can easily fetch per-user connection lists.
+    try {
+      const userConnDataForStudent = {
+        connectionId: connectionRef.id,
+        studentId,
+        teacherId,
+        role: "student",
+        status: "pending",
+        requestedBy: connectionData.requestedBy,
+        createdAt: connectionData.createdAt,
+        updatedAt: connectionData.updatedAt,
+      };
+
+      const userConnDataForTeacher = {
+        connectionId: connectionRef.id,
+        studentId,
+        teacherId,
+        role: "teacher",
+        status: "pending",
+        requestedBy: connectionData.requestedBy,
+        createdAt: connectionData.createdAt,
+        updatedAt: connectionData.updatedAt,
+      };
+
+      await Promise.all([
+        db.collection("users").doc(studentId).collection("connections").doc(connectionRef.id).set(userConnDataForStudent),
+        db.collection("users").doc(teacherId).collection("connections").doc(connectionRef.id).set(userConnDataForTeacher),
+      ]);
+    } catch (err) {
+      console.error("Failed to write user subcollection connection refs:", err);
+      // Not fatal for primary operation — fallthrough and return created response
+    }
+
     res.status(201).json({
       success: true,
       message: "Connection request sent successfully",
@@ -80,30 +114,97 @@ export const getConnections = async (req, res) => {
       });
     }
 
-    // Query based on role
+    // Query based on role (teacherId or studentId)
     const fieldToQuery = role === "teacher" ? "teacherId" : "studentId";
-    let query = db.collection("connections").where(fieldToQuery, "==", userId);
 
-    if (status) {
-      query = query.where("status", "==", status);
-    }
-
-    const snapshot = await query.orderBy("createdAt", "desc").get();
-
+    // We prefer reading per-user refs from users/{userId}/connections which avoids
+    // composite-index requirements on the top-level `connections` collection.
     const connections = [];
     const userIds = new Set();
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      connections.push({
-        id: doc.id,
-        ...data,
-      });
-      
-      // Collect user IDs to fetch their details
-      userIds.add(data.studentId);
-      userIds.add(data.teacherId);
-    });
+    let usedUserSubcollection = false;
+    try {
+      const userConnRef = db.collection("users").doc(userId).collection("connections");
+      let userConnQuery = userConnRef;
+      if (status) userConnQuery = userConnQuery.where("status", "==", status);
+
+      const userConnSnap = await userConnQuery.orderBy("createdAt", "desc").get();
+      if (!userConnSnap.empty) {
+        usedUserSubcollection = true;
+
+        // Fetch the main connection docs for each reference (if present)
+        const connDocs = await Promise.all(
+          userConnSnap.docs.map((d) => db.collection("connections").doc(d.data().connectionId).get())
+        );
+
+        userConnSnap.docs.forEach((d, idx) => {
+          const refData = d.data();
+          const mainDoc = connDocs[idx];
+          if (mainDoc && mainDoc.exists) {
+            const data = mainDoc.data();
+            connections.push({ id: mainDoc.id, ...data });
+            userIds.add(data.studentId);
+            userIds.add(data.teacherId);
+          } else {
+            // Fallback to lightweight ref if main doc missing
+            connections.push({
+              id: refData.connectionId,
+              studentId: refData.studentId,
+              teacherId: refData.teacherId,
+              requestedBy: refData.requestedBy,
+              message: refData.message || "",
+              status: refData.status || "pending",
+              createdAt: refData.createdAt,
+              updatedAt: refData.updatedAt,
+            });
+            userIds.add(refData.studentId);
+            userIds.add(refData.teacherId);
+          }
+        });
+      }
+    } catch (err) {
+      // Ignore — we'll fallback to main collection query below
+      console.warn("User subcollection query failed, will fallback to main collection:", err.message || err);
+    }
+
+    // If no per-user refs found, fallback to main `connections` query.
+    if (!usedUserSubcollection) {
+      try {
+        let query = db.collection("connections").where(fieldToQuery, "==", userId);
+        if (status) query = query.where("status", "==", status);
+        const snapshot = await query.orderBy("createdAt", "desc").get();
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          connections.push({ id: doc.id, ...data });
+          userIds.add(data.studentId);
+          userIds.add(data.teacherId);
+        });
+      } catch (err) {
+        // Likely a composite index is required; as a last resort read per-user refs without orderBy
+        console.warn("Main connections query failed (index?), falling back to unordered per-user refs:", err.message || err);
+        try {
+          const userConnSnap = await db.collection("users").doc(userId).collection("connections").get();
+          userConnSnap.forEach((d) => {
+            const data = d.data();
+            connections.push({
+              id: data.connectionId,
+              studentId: data.studentId,
+              teacherId: data.teacherId,
+              requestedBy: data.requestedBy,
+              message: data.message || "",
+              status: data.status || "pending",
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
+            });
+            userIds.add(data.studentId);
+            userIds.add(data.teacherId);
+          });
+        } catch (e) {
+          console.error("Failed fallback per-user refs read:", e.message || e);
+        }
+      }
+    }
 
     // Fetch user details for all connections
     const usersMap = {};
@@ -127,6 +228,34 @@ export const getConnections = async (req, res) => {
       student: usersMap[conn.studentId] || { uid: conn.studentId },
       teacher: usersMap[conn.teacherId] || { uid: conn.teacherId },
     }));
+
+    // Also include any per-user connection refs stored under users/{userId}/connections
+    // (this helps surface requests created in other ways or when main query misses)
+    try {
+      const userConnSnapshot = await db.collection("users").doc(userId).collection("connections").orderBy("createdAt", "desc").get();
+      userConnSnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Avoid duplicates
+        if (!enrichedConnections.find((c) => c.id === data.connectionId)) {
+          // build a lightweight connection object
+          enrichedConnections.push({
+            id: data.connectionId,
+            studentId: data.studentId,
+            teacherId: data.teacherId,
+            requestedBy: data.requestedBy,
+            message: data.message || "",
+            status: data.status || "pending",
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            student: usersMap[data.studentId] || { uid: data.studentId },
+            teacher: usersMap[data.teacherId] || { uid: data.teacherId },
+          });
+        }
+      });
+    } catch (err) {
+      // ignore if per-user refs missing
+      // console.warn("Could not read per-user connection refs:", err.message || err);
+    }
 
     res.json({
       success: true,
@@ -181,6 +310,21 @@ export const updateConnection = async (req, res) => {
       updatedAt: new Date().toISOString(),
     });
 
+    // Propagate status update to per-user subcollections if they exist
+    try {
+      const updatedAt = new Date().toISOString();
+      const connDoc = connectionDoc.data();
+      const { studentId, teacherId } = connDoc || {};
+      if (studentId && teacherId) {
+        await Promise.all([
+          db.collection("users").doc(studentId).collection("connections").doc(connectionId).update({ status, updatedAt }),
+          db.collection("users").doc(teacherId).collection("connections").doc(connectionId).update({ status, updatedAt }),
+        ]);
+      }
+    } catch (err) {
+      // ignore if per-user refs are missing
+      console.warn("Could not update per-user connection refs:", err.message || err);
+    }
     res.json({
       success: true,
       message: `Connection ${status} successfully`,
@@ -221,6 +365,20 @@ export const deleteConnection = async (req, res) => {
     }
 
     await connectionRef.delete();
+
+    // Also delete per-user subcollection refs if they exist
+    try {
+      const data = connectionDoc.data();
+      const { studentId, teacherId } = data || {};
+      if (studentId && teacherId) {
+        await Promise.all([
+          db.collection("users").doc(studentId).collection("connections").doc(connectionId).delete(),
+          db.collection("users").doc(teacherId).collection("connections").doc(connectionId).delete(),
+        ]);
+      }
+    } catch (err) {
+      console.warn("Could not delete per-user connection refs:", err.message || err);
+    }
 
     res.json({
       success: true,

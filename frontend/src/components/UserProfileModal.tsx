@@ -98,6 +98,12 @@ export function UserProfileModal({ user, isOpen, onClose }: UserProfileModalProp
 
       if (result.success) {
         setIsConnected(true);
+        // Notify other parts of the app a new connection was created so they can refresh
+        try {
+          window.dispatchEvent(new CustomEvent("connection:created", { detail: { connectionId: result.connectionId } }));
+        } catch (e) {
+          // ignore in non-browser environments
+        }
         toast({
           title: "Request Sent!",
           description: `Your connection request has been sent to ${user.displayName}`,
