@@ -227,3 +227,29 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+.input {
+  width: 100%;
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: #4f46e5;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+table {
+  font-size: 14px;
+}
+th {
+  font-weight: 600;
+}

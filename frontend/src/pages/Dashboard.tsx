@@ -14,7 +14,7 @@ import  TeacherDashboardPage  from "@/components/pages/TeacherDashboardPage";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
+
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const { user, logout } = useAuth();
@@ -68,7 +68,6 @@ const Index = () => {
         case "my-classes":
         case "live-sessions":
         case "assignments":
-           return <TeacherAssignmentsPage />;
         case "student-progress":
         case "doubt-history":
           return <TeacherDashboardPage />;

@@ -4,7 +4,8 @@ import aiRoutes from "./routes/ai.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import connectionsRoutes from "./routes/connections.routes.js";
 import schedulerRoutes from "./routes/scheduler.routes.js";
-
+import taskRoutes from "./routes/taskRoutes.js";
+import assignmentRoutes from "./routes/assignmentRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -15,7 +16,8 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/connections", connectionsRoutes);
 app.use("/api/scheduler", schedulerRoutes);
-
+app.use("/api/tasks", taskRoutes);
+app.use("/api/assignments", assignmentRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

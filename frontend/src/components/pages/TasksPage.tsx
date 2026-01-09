@@ -40,10 +40,13 @@ import {
   Timestamp 
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { getStudentAssignments } from "@/services/assignmentService";
+import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
+
 
 interface Task {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   subject: string;
   description: string;
@@ -57,6 +60,8 @@ interface Task {
   duration?: number;
   category?: string;
   isScheduled?: boolean;
+  isAssignment?: boolean;
+    fileUrl?: string;
 }
 
 const initialTasks: Task[] = [];
@@ -89,81 +94,247 @@ export function TasksPage() {
     taskDurations: {} as Record<string, string>,
     taskCategories: {} as Record<string, string>,
   });
+// const submitAssignment = async (task: Task, file: File) => {
+//   if (!user) return;
+
+//   try {
+//     // Upload file
+//     const fileRef = ref(
+//       storage,
+//       `submissions/${task.id}/${user.uid}_${file.name}`
+//     );
+
+//     await uploadBytes(fileRef, file);
+//     const fileUrl = await getDownloadURL(fileRef);
+
+//     // Save submission
+//     await addDoc(collection(db, "submissions"), {
+//       assignmentId: task.id,
+//       studentId: user.uid,
+//       fileUrl,
+//       status: "submitted",
+//       submittedAt: Timestamp.now(),
+//     });
+
+//     // Update assignment status
+//     await updateDoc(doc(db, "assignments", task.id), {
+//       status: "completed",
+//     });
+
+//     toast({
+//       title: "Assignment Submitted",
+//       description: "Your assignment has been submitted successfully",
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     toast({
+//       title: "Error",
+//       description: "Failed to submit assignment",
+//       variant: "destructive",
+//     });
+//   }
+// };
+
 
   // Scheduler results state
+const submitAssignment = async (task: Task, file: File) => {
+  if (!user) return;
+
+  try {
+    const uploadRes = await uploadToCloudinary(file);
+
+    await addDoc(collection(db, "submissions"), {
+      assignmentId: task.id,
+      studentId: user.uid,
+      fileUrl: uploadRes.secure_url,
+      fileName: file.name,
+      submittedAt: Timestamp.now(),
+    });
+
+    await updateDoc(doc(db, "assignments", task.id), {
+      status: "completed",
+      submittedAt: Timestamp.now(),
+    });
+
+    // ✅ THIS IS THE FIX (update UI instantly)
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, status: "completed", progress: 100 }
+          : t
+      )
+    );
+
+    toast({
+      title: "Assignment Uploaded",
+      description: "Assignment marked as completed",
+    });
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Upload failed",
+      variant: "destructive",
+    });
+  }
+};
+
+
+
   const [scheduleResult, setScheduleResult] = useState<any>(null);
   const [showScheduleResult, setShowScheduleResult] = useState(false);
   const [showDailySchedule, setShowDailySchedule] = useState(false);
 
   // Load tasks from Firestore
-  useEffect(() => {
-    if (!user) {
-      console.log("No user found, skipping task load");
-      setLoading(false);
-      return;
-    }
+  // useEffect(() => {
+  //   if (!user) {
+  //     console.log("No user found, skipping task load");
+  //     setLoading(false);
+  //     return;
+  //   }
 
-    console.log("Loading tasks for user:", user.uid);
+  //   console.log("Loading tasks for user:", user.uid);
 
-    try {
-      const tasksRef = collection(db, "tasks");
-      // Start with simpler query without orderBy to avoid composite index requirement
-      // Client-side sorting will be done instead
-      const q = query(
-        tasksRef,
-        where("userId", "==", user.uid)
-      );
+  //   try {
+  //     const tasksRef = collection(db, "tasks");
+  //     // Start with simpler query without orderBy to avoid composite index requirement
+  //     // Client-side sorting will be done instead
+  //     const q = query(
+  //       tasksRef,
+  //       where("userId", "==", user.uid)
+  //     );
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        console.log("Tasks snapshot received:", snapshot.docs.length, "documents");
-        const tasksData = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .sort((a: any, b: any) => {
-            // Client-side sort by createdAt descending
-            return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
-          }) as Task[];
-        setTasks(tasksData);
-        setLoading(false);
-      }, (error: any) => {
-        console.error("Error loading tasks - Full error:", {
-          code: error.code,
-          message: error.message,
-          details: error
-        });
+  //     const unsubscribe = onSnapshot(q, (snapshot) => {
+  //       console.log("Tasks snapshot received:", snapshot.docs.length, "documents");
+  //       const tasksData = snapshot.docs
+  //         .map((doc) => ({
+  //           id: doc.id,
+  //           ...doc.data(),
+  //         }))
+  //         .sort((a: any, b: any) => {
+  //           // Client-side sort by createdAt descending
+  //           return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+  //         }) as Task[];
+  //       setTasks(tasksData);
+  //       setLoading(false);
+  //     }, (error: any) => {
+  //       console.error("Error loading tasks - Full error:", {
+  //         code: error.code,
+  //         message: error.message,
+  //         details: error
+  //       });
         
-        let errorMessage = "Failed to load tasks. Please try again.";
-        if (error.code === "permission-denied") {
-          errorMessage = "Permission denied. Check Firestore rules.";
-        } else if (error.code === "invalid-argument") {
-          errorMessage = "Invalid query. Retrying without index...";
-        } else if (error.code === "unavailable") {
-          errorMessage = "Firestore is currently unavailable.";
-        } else if (error.code === "failed-precondition") {
-          errorMessage = "Firestore needs to create an index. This usually takes a few minutes.";
-        }
+  //       let errorMessage = "Failed to load tasks. Please try again.";
+  //       if (error.code === "permission-denied") {
+  //         errorMessage = "Permission denied. Check Firestore rules.";
+  //       } else if (error.code === "invalid-argument") {
+  //         errorMessage = "Invalid query. Retrying without index...";
+  //       } else if (error.code === "unavailable") {
+  //         errorMessage = "Firestore is currently unavailable.";
+  //       } else if (error.code === "failed-precondition") {
+  //         errorMessage = "Firestore needs to create an index. This usually takes a few minutes.";
+  //       }
 
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+  //       toast({
+  //         title: "Error",
+  //         description: errorMessage,
+  //         variant: "destructive",
+  //       });
+  //       setLoading(false);
+  //     });
+
+  //     return () => unsubscribe();
+  //   } catch (error: any) {
+  //     console.error("Error setting up task listener:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to initialize task loading.",
+  //       variant: "destructive",
+  //     });
+  //     setLoading(false);
+  //   }
+  // }, [user, toast]);
+useEffect(() => {
+  if (!user) return;
+
+  const q = query(
+    collection(db, "assignments"),
+    where("assignedTo", "==", user.uid)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const assignmentTasks: Task[] = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as any),
+      isAssignment: true,
+      progress: doc.data().status === "completed" ? 100 : 0,
+    }));
+
+    setTasks((prev) => {
+      const personalTasks = prev.filter((t) => !t.isAssignment);
+      return [...assignmentTasks, ...personalTasks];
+    });
+  });
+
+  return () => unsubscribe();
+}, [user]);
+
+  useEffect(() => {
+  if (!user) {
+    console.log("No user found, skipping task load");
+    setLoading(false);
+    return;
+  }
+
+  console.log("Loading tasks + assignments for user:", user.uid);
+
+  const loadAllStudentWork = async () => {
+    try {
+      // 1️⃣ Listen to student's own tasks
+      const tasksRef = collection(db, "tasks");
+      const q = query(tasksRef, where("userId", "==", user.uid));
+
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        console.log("Tasks snapshot:", snapshot.docs.length);
+
+        const personalTasks = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          isAssignment: false,
+        })) as Task[];
+
+        // 2️⃣ Fetch teacher-assigned assignments
+        const assignments = await getStudentAssignments(user.uid);
+
+        const assignmentTasks: Task[] = assignments.map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          subject: a.subject || "General",
+          description: a.description,
+          deadline: a.dueDate,
+          priority: "medium",
+          status: a.status || "pending",
+          progress: 0,
+          createdAt: a.createdAt,
+          isAssignment: true,
+          fileUrl: a.fileUrl ?? null,
+        }));
+
+        console.log("Assignments loaded:", assignmentTasks.length);
+
+        // 3️⃣ Merge both
+        setTasks([...assignmentTasks, ...personalTasks]);
         setLoading(false);
       });
 
-      return () => unsubscribe();
-    } catch (error: any) {
-      console.error("Error setting up task listener:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initialize task loading.",
-        variant: "destructive",
-      });
+      return unsubscribe;
+    } catch (error) {
+      console.error("Error loading student work:", error);
       setLoading(false);
     }
-  }, [user, toast]);
+  };
+
+  loadAllStudentWork();
+}, [user]);
 
   // Load latest AI schedule from Firestore
   useEffect(() => {
@@ -283,33 +454,60 @@ export function TasksPage() {
     return statusMatch && priorityMatch;
   });
 
-  const toggleTaskStatus = async (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
+  // const toggleTaskStatus = async (id: string) => {
+  //   const task = tasks.find(t => t.id === id);
+  //   if (!task) return;
 
-    try {
-      const taskRef = doc(db, "tasks", id);
-      const newStatus = task.status === "completed" ? "pending" : "completed";
-      const newProgress = newStatus === "completed" ? 100 : 0;
+  //   try {
+  //     const taskRef = doc(db, "tasks", id);
+  //     const newStatus = task.status === "completed" ? "pending" : "completed";
+  //     const newProgress = newStatus === "completed" ? 100 : 0;
 
-      await updateDoc(taskRef, {
-        status: newStatus,
-        progress: newProgress,
-      });
+  //     await updateDoc(taskRef, {
+  //       status: newStatus,
+  //       progress: newProgress,
+  //     });
 
-      toast({
-        title: "Success",
-        description: `Task marked as ${newStatus}`,
-      });
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  //     toast({
+  //       title: "Success",
+  //       description: `Task marked as ${newStatus}`,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error updating task:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to update task. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
+  const toggleTaskStatus = async (task: Task) => {
+  if (task.isAssignment) return; // 🚫 assignments handled via upload
+
+  try {
+    const taskRef = doc(db, "tasks", task.id);
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+    const newProgress = newStatus === "completed" ? 100 : 0;
+
+    await updateDoc(taskRef, {
+      status: newStatus,
+      progress: newProgress,
+    });
+
+    toast({
+      title: "Success",
+      description: `Task marked as ${newStatus}`,
+    });
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Error",
+      description: "Failed to update task",
+      variant: "destructive",
+    });
+  }
+};
 
   const deleteTask = async (id: string) => {
     try {
@@ -1383,7 +1581,7 @@ export function TasksPage() {
               )}
             >
               <div className="flex items-start gap-4">
-                <button
+                {/* <button
                   onClick={() => toggleTaskStatus(task.id)}
                   className="mt-1 shrink-0"
                 >
@@ -1392,7 +1590,71 @@ export function TasksPage() {
                   ) : (
                     <Circle className="w-6 h-6 text-muted-foreground hover:text-primary transition-colors" />
                   )}
-                </button>
+                </button> */}
+                {/* {task.isAssignment ? (
+  task.status === "completed" ? (
+    <CheckCircle className="w-6 h-6 text-success" />
+  ) : (
+   <label className="cursor-pointer">
+  <input
+    type="file"
+    accept=".pdf,.doc,.docx"
+    className="hidden"
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      await submitAssignment(task, file);
+
+      // ✅ IMPORTANT: reset input so same file works again
+      e.target.value = "";
+    }}
+  />
+  <Circle className="w-6 h-6 text-muted-foreground hover:text-primary transition-colors" />
+</label>
+
+  )
+) : (
+  <button
+    onClick={() => toggleTaskStatus(task)}
+    className="mt-1 shrink-0"
+  >
+    {task.status === "completed" ? (
+      <CheckCircle className="w-6 h-6 text-success" />
+    ) : (
+      <Circle className="w-6 h-6 text-muted-foreground hover:text-primary transition-colors" />
+    )}
+  </button>
+)} */}
+{task.isAssignment ? (
+  task.status === "completed" ? (
+    <CheckCircle className="w-6 h-6 text-success" />
+  ) : (
+    <label className="cursor-pointer">
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) submitAssignment(task, file);
+        }}
+      />
+      <Circle className="w-6 h-6 text-muted-foreground hover:text-primary" />
+    </label>
+  )
+) : (
+  <button onClick={() => toggleTaskStatus(task)}>
+    {task.status === "completed" ? (
+      <CheckCircle className="w-6 h-6 text-success" />
+    ) : (
+      <Circle className="w-6 h-6 text-muted-foreground" />
+    )}
+  </button>
+)}
+
+
+
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -1411,7 +1673,7 @@ export function TasksPage() {
                     {task.description}
                   </p>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                  {/* <div className="flex flex-wrap items-center gap-4 text-sm">
                     <Badge variant="secondary">{task.subject}</Badge>
                     {task.isScheduled && task.scheduledTime && (
                       <Badge className="bg-primary/10 text-primary border-primary/20">
@@ -1436,7 +1698,51 @@ export function TasksPage() {
                         {task.duration} min
                       </span>
                     )}
-                  </div>
+                  </div> */}
+<div className="flex flex-wrap items-center gap-4 text-sm">
+  <Badge variant="secondary">{task.subject}</Badge>
+
+  {task.isScheduled && task.scheduledTime && (
+    <Badge className="bg-primary/10 text-primary border-primary/20">
+      <Clock className="w-3 h-3 mr-1" />
+      {task.scheduledTime} - {task.endTime}
+    </Badge>
+  )}
+
+  <span className="flex items-center gap-1 text-muted-foreground">
+    <Calendar className="w-4 h-4" />
+    {task.deadline}
+  </span>
+
+  <span className="flex items-center gap-1 text-muted-foreground">
+    <Flag className={cn(
+      "w-4 h-4",
+      task.priority === "high" && "text-destructive",
+      task.priority === "medium" && "text-warning"
+    )} />
+    {task.priority}
+  </span>
+
+  {task.duration && (
+    <span className="text-muted-foreground">
+      {task.duration} min
+    </span>
+  )}
+
+ {/* {task.fileUrl && typeof task.fileUrl === "string" && (
+  <Button asChild variant="outline">
+    <a
+      href={task.fileUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      download
+    >
+      Download Assignment
+    </a>
+  </Button>
+)} */}
+
+</div>
 
                   {task.progress > 0 && task.progress < 100 && (
                     <div className="mt-3">
@@ -1458,14 +1764,48 @@ export function TasksPage() {
                   <Button variant="ghost" size="icon" className="w-8 h-8">
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button 
+                  {/* <Button 
                     variant="ghost" 
                     size="icon" 
                     className="w-8 h-8 text-destructive hover:text-destructive"
                     onClick={() => deleteTask(task.id)}
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </Button> */}
+                  {/* {!task.isAssignment && (
+  <Button
+    variant="ghost"
+    size="icon"
+    className="w-8 h-8 text-destructive"
+    onClick={() => deleteTask(task.id)}
+  >
+    <Trash2 className="w-4 h-4" />
+  </Button>
+)} */}
+<div className="flex flex-wrap items-center gap-2 mb-1">
+  <h3 className={cn(
+    "font-semibold",
+    task.status === "completed" && "line-through"
+  )}>
+    {task.title}
+  </h3>
+
+  {task.isAssignment ? (
+    <Badge className="bg-blue-100 text-blue-700 border border-blue-300">
+      Assignment
+    </Badge>
+  ) : (
+    <Badge variant="secondary">
+      Personal Task
+    </Badge>
+  )}
+
+  <Badge variant="outline" className={getStatusColor(task.status)}>
+    {task.status}
+  </Badge>
+</div>
+
+
                 </div>
               </div>
             </motion.div>
