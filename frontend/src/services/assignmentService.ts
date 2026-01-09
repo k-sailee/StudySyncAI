@@ -87,6 +87,36 @@ export const getTeacherAssignments = async () => {
 //     ...doc.data(),
 //   }));
 // };
+interface CreateAssignmentsParams {
+  assignment: {
+    title: string;
+    description: string;
+    subject: string;
+    dueDate: string;
+    totalMarks: number;
+  };
+  studentIds: string[];
+  teacherId: string;
+}
+
+export const createAssignmentsForStudents = async ({
+  assignment,
+  studentIds,
+  teacherId,
+}: CreateAssignmentsParams) => {
+  const promises = studentIds.map((studentId) =>
+    addDoc(collection(db, "assignments"), {
+      ...assignment,
+      assignedBy: teacherId,
+      assignedTo: studentId, // ✅ ONE STUDENT PER DOC
+      status: "pending",
+      createdAt: Timestamp.now(),
+    })
+  );
+
+  await Promise.all(promises);
+};
+
 export const getStudentAssignments = async (
   studentId: string
 ): Promise<Assignment[]> => {
