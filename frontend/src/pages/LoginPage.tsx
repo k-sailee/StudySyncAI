@@ -68,7 +68,7 @@ const [role, setRole] = useState<UserRole>(() => {
       if (isSignUp) {
         await signUp(email, password, displayName, role);
       } else {
-        await signIn(email, password);
+        await signIn(email, password, role);
       }
       setLoading(false);
       navigate("/dashboard");
