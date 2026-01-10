@@ -60,9 +60,15 @@ export function WelcomeSection({ userName = "John", role = "student" }: WelcomeS
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-white text-primary hover:bg-white/90 shadow-lg group"
+              onClick={() => {
+                if (role === "student") {
+                  const el = document.getElementById("focus-timer");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }}
             >
               <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
               {role === "teacher" ? "Start Class" : "Start Learning"}
