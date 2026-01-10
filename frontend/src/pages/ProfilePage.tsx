@@ -19,7 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function ProfilePage() {
-  const { user,updateProfile  } = useAuth();
+  const { user,updateUserProfile  } = useAuth();
   const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -168,24 +168,24 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} disabled />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
                   <Button variant="outline" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
-                  <Button
-  onClick={() => {
-    updateProfile({
+                 <Button
+  onClick={async () => {
+    await updateUserProfile({
       displayName: name,
-      email,
     });
     setIsEditing(false);
   }}
 >
   Save Changes
 </Button>
+
 
                 </div>
               </CardContent>
