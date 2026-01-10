@@ -59,11 +59,14 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         await signUp(email, password, displayName, role);
+        setLoading(false);
+        navigate("/dashboard");
       } else {
-        await signIn(email, password);
+        const user = await signIn(email, password, role);
+        setLoading(false);
+        // Navigate after successful sign-in; app can show role-specific UI
+        navigate("/dashboard");
       }
-      setLoading(false);
-      navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
       setLoading(false);

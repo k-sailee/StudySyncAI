@@ -19,15 +19,24 @@ const firebaseConfig = {
 // Prefer explicit service account JSON stored in env
 if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: firebaseConfig.projectId,
-    });
-    console.log("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_KEY");
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    let serviceAccount = null;
+    try {
+      serviceAccount = JSON.parse(raw);
+    } catch (err) {
+      console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is present but not valid JSON. Falling back to other credential methods.", err.message);
+    }
+
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: firebaseConfig.projectId,
+      });
+      console.log("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_KEY");
+    }
   } catch (err) {
-    console.error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY:", err);
-    throw err;
+    // Any unexpected error here should be logged but we don't want to crash on parse issues
+    console.error("Error while processing FIREBASE_SERVICE_ACCOUNT_KEY:", err);
   }
 } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   // If GOOGLE_APPLICATION_CREDENTIALS is set, load the file directly
@@ -37,12 +46,39 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
       : path.resolve(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS);
     
     if (fs.existsSync(credPath)) {
-      const serviceAccount = JSON.parse(fs.readFileSync(credPath, "utf8"));
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: firebaseConfig.projectId,
-      });
-      console.log(`Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS: ${credPath}`);
+      try {
+        const raw = fs.readFileSync(credPath, "utf8");
+        console.log(`Read ${raw.length} bytes from ${credPath}`);
+        console.log(`Preview: ${raw.slice(0,120).replace(/\n/g, "\\n").slice(0,120)}`);
+        const serviceAccount = JSON.parse(raw);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId: firebaseConfig.projectId,
+        });
+        console.log(`Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS: ${credPath}`);
+      } catch (err) {
+        console.warn(`Failed to parse JSON at ${credPath}. Falling back to repository serviceAccountKey.json if present.`, err.message);
+        // try fallback local file in repo root
+        const localFallback = path.resolve(__dirname, "../../serviceAccountKey.json");
+        if (fs.existsSync(localFallback)) {
+          try {
+            const rawLocal = fs.readFileSync(localFallback, "utf8");
+            console.log(`Read ${rawLocal.length} bytes from ${localFallback}`);
+            console.log(`Local preview: ${rawLocal.slice(0,120).replace(/\n/g, "\\n").slice(0,120)}`);
+            const serviceAccountLocal = JSON.parse(rawLocal);
+            admin.initializeApp({
+              credential: admin.credential.cert(serviceAccountLocal),
+              projectId: firebaseConfig.projectId,
+            });
+            console.log(`Firebase Admin initialized via local fallback: ${localFallback}`);
+          } catch (err2) {
+            console.error(`Local fallback ${localFallback} also failed to parse:`, err2.message);
+            throw err2;
+          }
+        } else {
+          throw err;
+        }
+      }
     } else {
       throw new Error(`Service account file not found: ${credPath}`);
     }

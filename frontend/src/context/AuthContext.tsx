@@ -22,7 +22,7 @@ interface AuthContextType {
   user: UserData | null;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, expectedRole?: UserRole) => Promise<UserData>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, expectedRole?: UserRole) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
@@ -100,16 +100,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userDocRef = doc(db, "users", uid);
       const userDocSnap = await getDoc(userDocRef);
 
+      let resolvedRole: UserRole = "student";
+      let displayName = userCredential.user.displayName || null;
+
       if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        setUser({
-          uid,
-          email: userCredential.user.email,
-          displayName: userCredential.user.displayName || userData.displayName,
-          role: userData.role || "student",
-        });
+        const userData = userDocSnap.data() as any;
+        resolvedRole = (userData.role as UserRole) || "student";
+        displayName = displayName || (userData.displayName as string) || null;
       }
-    } catch (error) {
+
+      const newUser: UserData = {
+        uid,
+        email: userCredential.user.email,
+        displayName,
+        role: resolvedRole,
+      };
+
+      // Enforce expected role if provided
+      if (expectedRole && expectedRole !== resolvedRole) {
+        // Sign out to clear auth state
+        await signOut(auth);
+        throw new Error("Invalid credentials for this account type.");
+      }
+
+      setUser(newUser);
+      return newUser;
+    } catch (error: any) {
       console.error("Sign in error:", error);
       throw error;
     }
