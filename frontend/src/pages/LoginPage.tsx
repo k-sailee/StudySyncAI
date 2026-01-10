@@ -414,23 +414,7 @@ useEffect(() => {
             </button>
           </div>
 
-          {/* Demo Credentials */}
-          {!isSignUp && (
-            <div
-              className="mt-8 p-4 rounded-lg border text-xs sm:text-sm"
-              style={{
-                background: "rgba(212, 165, 224, 0.1)",
-                borderColor: palette.secondary,
-                color: palette.text,
-              }}
-            >
-              <div className="font-bold mb-2">Demo Credentials:</div>
-              <div className="space-y-1">
-                <div><strong>Student:</strong> student@example.com / password123</div>
-                <div><strong>Teacher:</strong> teacher@example.com / password123</div>
-              </div>
-            </div>
-          )}
+          {/* Demo credentials removed for production */}
         </form>
       </div>
     </div>
