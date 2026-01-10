@@ -72,6 +72,7 @@ export function FocusTimer() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      id="focus-timer"
       className="bg-card rounded-2xl border border-border shadow-card p-6"
     >
       <div className="flex items-center justify-between mb-6">
