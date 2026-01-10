@@ -15,9 +15,6 @@ import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
-import TeacherScheduledClasses from "@/components/dashboard/TeacherScheduledClasses";
-import StudentScheduledClasses from "@/components/dashboard/StudentScheduledClasses";
-
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const { user, logout } = useAuth();
@@ -69,12 +66,6 @@ const Index = () => {
             </div>
           );
         case "my-classes":
-           return (
-    <div className="space-y-6">
-      <WelcomeSection userName={userName} role="teacher" />
-      <TeacherScheduledClasses />
-    </div>
-  );
         case "live-sessions":
         case "assignments":
            return <TeacherAssignmentsPage />;
@@ -104,21 +95,18 @@ const Index = () => {
       case "dashboard":
       default:
         return (
-  <div className="flex gap-6">
-    <div className="flex-1 min-w-0 space-y-6">
-      <WelcomeSection userName={userName} role="student" />
-
-      {/* ✅ STUDENT SCHEDULED CLASSES */}
-      <StudentScheduledClasses />
-
-      {/* Optional productivity tool */}
-      <FocusTimer />
-    </div>
-
-    <RightSidebar />
-  </div>
-);
-
+          <div className="flex gap-6">
+            <div className="flex-1 min-w-0 space-y-6">
+              <WelcomeSection userName={userName} role="student" />
+              <ClassesSection />
+              <div className="grid lg:grid-cols-2 gap-6">
+                <LessonsTable />
+                <FocusTimer />
+              </div>
+            </div>
+            <RightSidebar />
+          </div>
+        );
     }
   };
 
