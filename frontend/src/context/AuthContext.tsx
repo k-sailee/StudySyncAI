@@ -22,7 +22,7 @@ interface AuthContextType {
   user: UserData | null;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, expectedRole?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, expectedRole?: UserRole) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
@@ -102,11 +102,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        const actualRole: UserRole = (userData.role || "student") as UserRole;
+
+        // If an expectedRole is provided, enforce it
+        if (expectedRole && actualRole !== expectedRole) {
+          // Immediately sign out the firebase session and throw an error
+          try {
+            await signOut(auth);
+          } catch (e) {
+            console.warn("Failed to sign out after role mismatch:", e);
+          }
+          const err = new Error("Invalid credentials for this account type.");
+          // Keep consistent error shape
+          throw err;
+        }
+
         setUser({
           uid,
           email: userCredential.user.email,
           displayName: userCredential.user.displayName || userData.displayName,
-          role: userData.role || "student",
+          role: actualRole,
         });
       }
     } catch (error) {
