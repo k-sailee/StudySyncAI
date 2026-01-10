@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth, UserRole } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 
 const palette = {
   primary: "#7B9FE0",
@@ -24,7 +25,18 @@ const roles = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<UserRole>("student");
+  const [searchParams] = useSearchParams();
+const roleFromUrl = searchParams.get("role") as UserRole | null;
+const [role, setRole] = useState<UserRole>(() => {
+  return roleFromUrl === "teacher" ? "teacher" : "student";
+});
+useEffect(() => {
+  if (roleFromUrl === "teacher" || roleFromUrl === "student") {
+    setRole(roleFromUrl);
+  }
+}, [roleFromUrl]);
+
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -180,7 +192,11 @@ export default function LoginPage() {
                   minWidth: "120px",
                 }}
                 aria-pressed={role === r.key}
-                onClick={() => setRole(r.key as UserRole)}
+              onClick={() => {
+  setRole(r.key as UserRole);
+  navigate(`/login?role=${r.key}`);
+}}
+
               >
                 <span>{r.icon}</span>
                 <span>{r.label}</span>
