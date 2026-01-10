@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuth, UserRole } from "../context/AuthContext";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const palette = {
   primary: "#7B9FE0",
@@ -23,16 +22,9 @@ const roles = [
   { key: "teacher", label: "Teacher", icon: "👨‍🏫" },
 ];
 
-
-
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-const roleFromUrl = searchParams.get("role") as UserRole | null;
-const [role, setRole] = useState<UserRole>(() => {
-  return roleFromUrl === "teacher" ? "teacher" : "student";
-});
-
+  const [role, setRole] = useState<UserRole>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -68,7 +60,7 @@ const [role, setRole] = useState<UserRole>(() => {
       if (isSignUp) {
         await signUp(email, password, displayName, role);
       } else {
-        await signIn(email, password, role);
+        await signIn(email, password);
       }
       setLoading(false);
       navigate("/dashboard");
@@ -77,11 +69,6 @@ const [role, setRole] = useState<UserRole>(() => {
       setLoading(false);
     }
   };
-useEffect(() => {
-  if (roleFromUrl === "teacher" || roleFromUrl === "student") {
-    setRole(roleFromUrl);
-  }
-}, [roleFromUrl]);
 
   return (
     <div
@@ -414,7 +401,23 @@ useEffect(() => {
             </button>
           </div>
 
-          {/* Demo credentials removed for production */}
+          {/* Demo Credentials */}
+          {!isSignUp && (
+            <div
+              className="mt-8 p-4 rounded-lg border text-xs sm:text-sm"
+              style={{
+                background: "rgba(212, 165, 224, 0.1)",
+                borderColor: palette.secondary,
+                color: palette.text,
+              }}
+            >
+              <div className="font-bold mb-2">Demo Credentials:</div>
+              <div className="space-y-1">
+                <div><strong>Student:</strong> student@example.com / password123</div>
+                <div><strong>Teacher:</strong> teacher@example.com / password123</div>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
