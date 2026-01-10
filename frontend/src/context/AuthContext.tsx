@@ -193,6 +193,8 @@ import {
 import { auth, db } from "@/config/firebase";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 
+/* ================= TYPES ================= */
+
 export type UserRole = "student" | "teacher";
 
 export interface UserData {
@@ -206,56 +208,86 @@ export interface UserData {
 interface AuthContextType {
   user: UserData | null;
   loading: boolean;
+  isAuthenticated: boolean;
+
   signUp: (
     email: string,
     password: string,
     displayName: string,
     role: UserRole
   ) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+
+  signIn: (
+    email: string,
+    password: string,
+    expectedRole?: UserRole
+  ) => Promise<UserData>;
+
   logout: () => Promise<void>;
+
   updateUserProfile: (data: {
     displayName?: string;
     photoURL?: string;
   }) => Promise<void>;
-  isAuthenticated: boolean;
 }
+
+/* ================= CONTEXT ================= */
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/* ================= PROVIDER ================= */
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* ---------- AUTH STATE LISTENER ---------- */
   useEffect(() => {
-    return onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setLoading(false);
         return;
       }
 
-      const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-      const data = snap.data();
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userSnap = await getDoc(userDocRef);
+      const userData = userSnap.data();
 
       setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: firebaseUser.displayName || data?.displayName,
-        photoURL: firebaseUser.photoURL || data?.photoURL,
-        role: data?.role || "student",
+        displayName:
+          firebaseUser.displayName || userData?.displayName || null,
+        photoURL: firebaseUser.photoURL || userData?.photoURL || null,
+        role: (userData?.role as UserRole) || "student",
       });
 
       setLoading(false);
     });
+
+    return unsubscribe;
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string, role: UserRole) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
+  /* ---------- SIGN UP ---------- */
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName: string,
+    role: UserRole
+  ) => {
+    const cred = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
 
     await updateFirebaseProfile(cred.user, { displayName });
 
     await setDoc(doc(db, "users", cred.user.uid), {
+      uid: cred.user.uid,
       email,
       displayName,
       role,
@@ -263,10 +295,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+  /* ---------- SIGN IN (ROLE AWARE) ---------- */
+  const signIn = async (
+    email: string,
+    password: string,
+    expectedRole?: UserRole
+  ): Promise<UserData> => {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    const uid = userCredential.user.uid;
+    const userDocRef = doc(db, "users", uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    let resolvedRole: UserRole = "student";
+    let displayName = userCredential.user.displayName || null;
+
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      resolvedRole = (data.role as UserRole) || "student";
+      displayName = displayName || data.displayName || null;
+    }
+
+    // 🔐 Enforce role-based login
+    if (expectedRole && expectedRole !== resolvedRole) {
+      await signOut(auth);
+      throw new Error("Invalid credentials for this account type.");
+    }
+
+    const newUser: UserData = {
+      uid,
+      email: userCredential.user.email,
+      displayName,
+      role: resolvedRole,
+      photoURL: userCredential.user.photoURL,
+    };
+
+    setUser(newUser);
+    return newUser;
   };
 
+  /* ---------- UPDATE PROFILE ---------- */
   const updateUserProfile = async (data: {
     displayName?: string;
     photoURL?: string;
@@ -282,6 +354,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (prev ? { ...prev, ...data } : prev));
   };
 
+  /* ---------- LOGOUT ---------- */
   const logout = async () => {
     await signOut(auth);
     setUser(null);
@@ -292,11 +365,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         loading,
+        isAuthenticated: !!user,
         signUp,
         signIn,
         logout,
         updateUserProfile,
-        isAuthenticated: !!user,
       }}
     >
       {children}
@@ -304,8 +377,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+/* ================= HOOK ================= */
+
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
   return ctx;
 };
