@@ -262,7 +262,7 @@ useEffect(() => {
                   type="text"
                   className="w-full pl-12 pr-4 py-3 sm:py-3.5 rounded-lg border border-[#E0E0E8] text-sm sm:text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#7B9FE0] focus:border-transparent"
                   style={{ background: "#F9F9FB", color: palette.text }}
-                  placeholder="John Doe"
+                 
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required={isSignUp}

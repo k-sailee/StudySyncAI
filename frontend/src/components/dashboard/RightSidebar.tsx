@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const upcomingTasks = [
   {
@@ -34,8 +36,19 @@ const upcomingTasks = [
 ];
 
 export function RightSidebar() {
+   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const userName = user?.displayName || "User";
+  const userInitials =
+    user?.displayName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "U";
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+ 
+
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
     currentMonth.getMonth() + 1,
@@ -75,19 +88,27 @@ export function RightSidebar() {
         className="bg-card rounded-2xl border border-border shadow-card p-6"
       >
         <div className="flex flex-col items-center text-center">
-          <Avatar className="w-20 h-20 border-4 border-primary/30 shadow-lg">
-            <AvatarImage src="/placeholder.svg" />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-2xl font-bold">
-              JD
-            </AvatarFallback>
-          </Avatar>
-          <h3 className="mt-4 font-heading font-semibold text-lg">John Doe</h3>
+         <Avatar className="w-20 h-20 border-4 border-primary/30 shadow-lg">
+  <AvatarImage src={user?.photoURL || undefined} />
+  <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-2xl font-bold">
+    {userInitials}
+  </AvatarFallback>
+</Avatar>
+
+    <h3 className="mt-4 font-heading font-semibold text-lg">
+  {userName}
+</h3>
+
           <Badge variant="secondary" className="mt-2">
             Grade 11 - Science
           </Badge>
-          <Button variant="outline" size="sm" className="mt-4 w-full">
-            View Profile
-          </Button>
+      <Button
+  className="w-full"
+  onClick={() => navigate("/profile")}
+>
+  View Profile
+</Button>
+
         </div>
       </motion.div>
 

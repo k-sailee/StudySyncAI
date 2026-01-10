@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video, 
-  PlayCircle, 
-  CheckSquare, 
-  TrendingUp, 
-  Users, 
-  Film, 
-  HelpCircle, 
-  Settings, 
-  Menu, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Video,
+  PlayCircle,
+  CheckSquare,
+  TrendingUp,
+  Users,
+  Film,
+  HelpCircle,
+  Settings,
+  Menu,
   X,
-  LogOut,
   Bell,
   ChevronRight,
   GraduationCap,
@@ -22,11 +21,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SearchBar } from "@/components/SearchBar";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { UserSearchResult } from "@/services/userService";
+import { useAuth } from "@/context/AuthContext";
+import ProfileDropdown from "@/components/header/ProfileDropdown";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -34,7 +34,6 @@ interface DashboardLayoutProps {
   onSectionChange: (section: string) => void;
   userRole?: "student" | "teacher";
   onRoleChange?: (role: "student" | "teacher") => void;
-  onLogout?: () => void;
   showRoleSwitcher?: boolean;
 }
 
@@ -63,22 +62,20 @@ const teacherNavItems = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-export function DashboardLayout({ 
-  children, 
-  activeSection, 
+export function DashboardLayout({
+  children,
+  activeSection,
   onSectionChange,
   userRole = "student",
   onRoleChange,
-  onLogout,
-  showRoleSwitcher = false
+  showRoleSwitcher = false,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  
+  const { user } = useAuth();
+
   const navigationItems = userRole === "teacher" ? teacherNavItems : studentNavItems;
-  const userName = userRole === "teacher" ? "Prof. Smith" : "John Doe";
-  const userInitials = userRole === "teacher" ? "PS" : "JD";
 
   const handleUserSelect = (user: UserSearchResult) => {
     setSelectedUser(user);
@@ -96,6 +93,7 @@ export function DashboardLayout({
           setSelectedUser(null);
         }}
       />
+
       {/* Mobile Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -112,56 +110,49 @@ export function DashboardLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-xl lg:shadow-card",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-xl",
           "lg:static lg:z-auto",
-          "flex flex-col transition-transform duration-300 ease-in-out",
+          "flex flex-col transition-transform duration-300",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
+        <div className="h-16 flex items-center justify-between px-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center shadow-glow">
+            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <span className="font-heading font-bold text-xl text-foreground">LearnHub</span>
+            <span className="font-bold text-xl">LearnHub</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Role Switcher */}
         {showRoleSwitcher && onRoleChange && (
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b">
             <div className="flex gap-2 p-1 bg-accent/50 rounded-xl">
               <button
                 onClick={() => onRoleChange("student")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
+                  "flex-1 py-2 rounded-lg text-sm font-medium",
                   userRole === "student"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
                 )}
               >
-                <GraduationCap className="w-4 h-4" />
                 Student
               </button>
               <button
                 onClick={() => onRoleChange("teacher")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
+                  "flex-1 py-2 rounded-lg text-sm font-medium",
                   userRole === "teacher"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
                 )}
               >
-                <Users className="w-4 h-4" />
                 Teacher
               </button>
             </div>
@@ -182,25 +173,15 @@ export function DashboardLayout({
                       setSidebarOpen(false);
                     }}
                     className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent"
                     )}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && (
-                      <Badge 
-                        variant={item.badge === "Live" ? "destructive" : "secondary"}
-                        className={cn(
-                          "text-xs",
-                          item.badge === "Live" && "animate-pulse"
-                        )}
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
+                    {item.badge && <Badge>{item.badge}</Badge>}
                     {isActive && <ChevronRight className="w-4 h-4" />}
                   </button>
                 </li>
@@ -208,54 +189,16 @@ export function DashboardLayout({
             })}
           </ul>
         </nav>
-
-        {/* User Profile & Help */}
-        <div className="p-4 border-t border-border space-y-4 shrink-0">
-          <div className="p-4 rounded-xl bg-accent/50 border border-border">
-            <div className="flex items-center gap-3 mb-3">
-              <HelpCircle className="w-5 h-5 text-primary" />
-              <span className="font-medium text-sm">Need Help?</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Get support from our team or browse FAQs
-            </p>
-            <Button size="sm" variant="outline" className="w-full">
-              Contact Support
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors cursor-pointer">
-            <Avatar className="w-10 h-10 border-2 border-primary/30 shadow-sm">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white font-semibold">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{userName}</p>
-              <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-            </div>
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={onLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-card/80 backdrop-blur-xl border-b sticky top-0 z-50 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(true)}
-            >
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
-            
             <div className="hidden sm:block">
               <SearchBar
                 placeholder={userRole === "teacher" ? "Search students..." : "Search teachers..."}
@@ -264,18 +207,15 @@ export function DashboardLayout({
             </div>
           </div>
 
+          {/* 🔥 HEADER RIGHT */}
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </Button>
-            
-            <Avatar className="w-9 h-9 border-2 border-primary/30 shadow-sm">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-sm">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
+
+            {/* ✅ PROFESSIONAL PROFILE DROPDOWN */}
+            <ProfileDropdown />
           </div>
         </header>
 

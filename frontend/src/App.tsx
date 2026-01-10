@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import ProfilePage from "@/pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+<Route path="/profile" element={<ProfilePage />} />
 
             <Route
               path="/dashboard"

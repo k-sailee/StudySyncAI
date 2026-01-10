@@ -20,9 +20,9 @@ const Index = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
+const userName = user?.displayName || "User";
   const userRole = user?.role || "student";
-  const userName = user?.displayName || (userRole === "teacher" ? "Prof. Smith" : "John Doe");
+ 
 
   // Initialize to correct dashboard based on role
   const getInitialSection = () => {

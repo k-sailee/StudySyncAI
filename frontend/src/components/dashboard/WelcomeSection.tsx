@@ -7,7 +7,7 @@ interface WelcomeSectionProps {
   role?: "student" | "teacher";
 }
 
-export function WelcomeSection({ userName = "John", role = "student" }: WelcomeSectionProps) {
+export function WelcomeSection({ userName = "User", role = "student" }: WelcomeSectionProps) {
   const currentDate = new Date().toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'long',

@@ -22,7 +22,8 @@ const Index = () => {
   const { toast } = useToast();
 
   const userRole = user?.role || "student";
-  const userName = user?.displayName || (userRole === "teacher" ? "Prof. Smith" : "John Doe");
+const userName = user?.displayName || "User";
+
 
   // Initialize to correct dashboard based on role
   const getInitialSection = () => {
@@ -97,7 +98,7 @@ const Index = () => {
         return (
           <div className="flex gap-6">
             <div className="flex-1 min-w-0 space-y-6">
-              <WelcomeSection userName={userName} role="student" />
+              <WelcomeSection userName={userName} role={userRole} />
               <ClassesSection />
               <div className="grid lg:grid-cols-2 gap-6">
                 <LessonsTable />
