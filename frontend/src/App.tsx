@@ -11,6 +11,9 @@ import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 import ProfilePage from "@/pages/ProfilePage";
+import { TaskProvider } from "@/context/TaskContext";
+
+
 
 const queryClient = new QueryClient();
 
@@ -20,6 +23,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+         <TaskProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -39,6 +43,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </TaskProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

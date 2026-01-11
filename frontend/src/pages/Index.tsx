@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
@@ -15,9 +15,35 @@ import ContactSupportPage from "./ContactSupport";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams , useLocation} from "react-router-dom";
+
 import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
 const Index = () => {
-  const [activeSection, setActiveSection] = useState("dashboard");
+  // const [activeSection, setActiveSection] = useState("dashboard");
+const location = useLocation();
+const [activeSection, setActiveSection] = useState("dashboard");
+
+useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const sectionFromUrl = params.get("section");
+
+  if (sectionFromUrl) {
+    setActiveSection(sectionFromUrl);
+  }
+}, [location.search]);
+
+useEffect(() => {
+  const handler = (e: any) => {
+    if (e.detail?.section) {
+      setActiveSection(e.detail.section);
+    }
+  };
+
+  window.addEventListener("dashboard:navigate", handler);
+  return () => window.removeEventListener("dashboard:navigate", handler);
+}, []);
+
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();

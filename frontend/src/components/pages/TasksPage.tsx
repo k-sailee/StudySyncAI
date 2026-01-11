@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/config/firebase";
+import { useTasks } from "@/context/TaskContext";
 import { 
   collection, 
   addDoc, 
@@ -76,6 +77,17 @@ export function TasksPage() {
   const [isSchedulerDialogOpen, setIsSchedulerDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [schedulerLoading, setSchedulerLoading] = useState(false);
+const {  addTask, updateTask } = useTasks();
+const [editingTask, setEditingTask] = useState<Task | null>(null);
+const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+const [editForm, setEditForm] = useState({
+  title: "",
+  description: "",
+  subject: "",
+  deadline: "",
+  priority: "medium" as "high" | "medium" | "low",
+});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -85,6 +97,17 @@ export function TasksPage() {
     deadline: "",
     priority: "medium" as "high" | "medium" | "low",
   });
+const openEditModal = (task: Task) => {
+  setEditingTask(task);
+  setEditForm({
+    title: task.title,
+    description: task.description,
+    subject: task.subject,
+    deadline: task.deadline,
+    priority: task.priority,
+  });
+  setIsEditDialogOpen(true);
+};
 
   // Scheduler form state
   const [schedulerData, setSchedulerData] = useState({
@@ -179,6 +202,43 @@ const submitAssignment = async (task: Task, file: File) => {
 };
 
 
+const handleUpdateTask = async () => {
+  if (!editingTask) return;
+
+  try {
+    // 🔹 PERSONAL TASK
+    if (!editingTask.isAssignment) {
+      await updateDoc(doc(db, "tasks", editingTask.id), {
+        ...editForm,
+      });
+    }
+
+    // 🔹 ASSIGNMENT (SAFE FIELDS ONLY)
+    if (editingTask.isAssignment) {
+      await updateDoc(doc(db, "assignments", editingTask.id), {
+        title: editForm.title,
+        description: editForm.description,
+        subject: editForm.subject,
+        dueDate: editForm.deadline,
+      });
+    }
+
+    toast({
+      title: "Updated",
+      description: "Changes saved successfully",
+    });
+
+    setIsEditDialogOpen(false);
+    setEditingTask(null);
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Error",
+      description: "Failed to update",
+      variant: "destructive",
+    });
+  }
+};
 
   const [scheduleResult, setScheduleResult] = useState<any>(null);
   const [showScheduleResult, setShowScheduleResult] = useState(false);
@@ -305,25 +365,58 @@ useEffect(() => {
         // 2️⃣ Fetch teacher-assigned assignments
         const assignments = await getStudentAssignments(user.uid);
 
-        const assignmentTasks: Task[] = assignments.map((a: any) => ({
-          id: a.id,
-          title: a.title,
-          subject: a.subject || "General",
-          description: a.description,
-          deadline: a.dueDate,
-          priority: "medium",
-          status: a.status || "pending",
-          progress: 0,
-          createdAt: a.createdAt,
-          isAssignment: true,
-          fileUrl: a.fileUrl ?? null,
-        }));
+        // const assignmentTasks: Task[] = assignments.map((a: any) => ({
+        //   id: a.id,
+        //   title: a.title,
+        //   subject: a.subject || "General",
+        //   description: a.description,
+        //   deadline: a.dueDate,
+        //   priority: "medium",
+        //   status: a.status || "pending",
+        //   progress: 0,
+        //   createdAt: a.createdAt,
+        //   isAssignment: true,
+        //   fileUrl: a.fileUrl ?? null,
+        // }));
+
+        const assignmentTasks: Task[] = assignments
+  .filter((a: any) => a.status !== "deleted-by-student")
+  .map((a: any) => ({
+    id: a.id,
+    title: a.title,
+    subject: a.subject || "General",
+    description: a.description,
+    deadline: a.dueDate,
+    priority: "medium",
+    status: a.status || "pending",
+    progress: a.status === "completed" ? 100 : 0,
+    createdAt: a.createdAt,
+    isAssignment: true,
+    fileUrl: a.fileUrl ?? null,
+  }));
 
         console.log("Assignments loaded:", assignmentTasks.length);
 
         // 3️⃣ Merge both
-        setTasks([...assignmentTasks, ...personalTasks]);
-        setLoading(false);
+        // setTasks([...assignmentTasks, ...personalTasks]);
+        const allTasks = [...assignmentTasks, ...personalTasks];
+
+setTasks(allTasks);
+
+// 🔥 SYNC TO TASK CONTEXT (FOR DASHBOARD)
+allTasks.forEach((task) => {
+  addTask({
+    id: task.id,
+    title: task.title,
+    subject: task.subject,
+    dueDate: task.deadline,
+    priority: task.priority,
+    status: task.status,
+  });
+});
+
+setLoading(false);
+
       });
 
       return unsubscribe;
@@ -412,17 +505,39 @@ useEffect(() => {
     }
 
     try {
-      await addDoc(collection(db, "tasks"), {
-        userId: user.uid,
-        title: formData.title,
-        subject: formData.subject || "General",
-        description: formData.description,
-        deadline: formData.deadline || "No deadline",
-        priority: formData.priority,
-        status: "pending",
-        progress: 0,
-        createdAt: Timestamp.now(),
-      });
+      // await addDoc(collection(db, "tasks"), {
+      //   userId: user.uid,
+      //   title: formData.title,
+      //   subject: formData.subject || "General",
+      //   description: formData.description,
+      //   deadline: formData.deadline || "No deadline",
+      //   priority: formData.priority,
+      //   status: "pending",
+      //   progress: 0,
+      //   createdAt: Timestamp.now(),
+      // });
+
+      const docRef = await addDoc(collection(db, "tasks"), {
+  userId: user.uid,
+  title: formData.title,
+  subject: formData.subject || "General",
+  description: formData.description,
+  deadline: formData.deadline || "No deadline",
+  priority: formData.priority,
+  status: "pending",
+  progress: 0,
+  createdAt: Timestamp.now(),
+});
+
+// 🔥 ADD TO CONTEXT (INSTANT DASHBOARD UPDATE)
+addTask({
+  id: docRef.id,
+  title: formData.title,
+  subject: formData.subject || "General",
+  dueDate: formData.deadline || new Date().toISOString(),
+  priority: formData.priority,
+  status: "pending",
+});
 
       toast({
         title: "Success",
@@ -482,6 +597,7 @@ useEffect(() => {
   //   }
   // };
 
+
   const toggleTaskStatus = async (task: Task) => {
   if (task.isAssignment) return; // 🚫 assignments handled via upload
 
@@ -508,6 +624,49 @@ useEffect(() => {
     });
   }
 };
+const handleDeleteTask = async (task: Task) => {
+  try {
+    // 🔹 PERSONAL TASK
+    if (!task.isAssignment) {
+      await deleteDoc(doc(db, "tasks", task.id));
+    }
+
+    // 🔹 ASSIGNMENT
+    if (task.isAssignment) {
+      // delete student submission (if exists)
+      const submissionQuery = query(
+        collection(db, "submissions"),
+        where("assignmentId", "==", task.id),
+        where("studentId", "==", user?.uid)
+      );
+
+      const snapshot = await getDocs(submissionQuery);
+      snapshot.forEach(async (docSnap) => {
+        await deleteDoc(doc(db, "submissions", docSnap.id));
+      });
+
+      // ❌ DO NOT delete teacher assignment
+      // Only remove from UI by status flag
+      await updateDoc(doc(db, "assignments", task.id), {
+        status: "deleted-by-student",
+      });
+    }
+
+    toast({
+      title: "Deleted",
+      description: "Item removed successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Error",
+      description: "Failed to delete item",
+      variant: "destructive",
+    });
+  }
+};
+
+
 
   const deleteTask = async (id: string) => {
     try {
@@ -608,8 +767,9 @@ useEffect(() => {
         
         console.log("Saving schedule to Firestore:", scheduleDoc);
         
-        const docRef = await addDoc(collection(db, "schedules"), scheduleDoc);
-        
+         const docRef = await addDoc(collection(db, "schedules"), scheduleDoc);
+      
+
         console.log("Schedule saved to Firestore with ID:", docRef.id);
       } catch (saveError) {
         console.error("Error saving schedule to Firestore:", saveError);
@@ -1222,6 +1382,84 @@ useEffect(() => {
               </div>
             </DialogContent>
           </Dialog>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {editingTask?.isAssignment ? "Edit Assignment" : "Edit Task"}
+      </DialogTitle>
+    </DialogHeader>
+
+    <div className="space-y-4">
+      <div>
+        <Label>Title</Label>
+        <Input
+          value={editForm.title}
+          onChange={(e) =>
+            setEditForm({ ...editForm, title: e.target.value })
+          }
+        />
+      </div>
+
+      <div>
+        <Label>Description</Label>
+        <Textarea
+          value={editForm.description}
+          onChange={(e) =>
+            setEditForm({ ...editForm, description: e.target.value })
+          }
+        />
+      </div>
+
+      <div>
+        <Label>Subject</Label>
+        <Input
+          value={editForm.subject}
+          onChange={(e) =>
+            setEditForm({ ...editForm, subject: e.target.value })
+          }
+        />
+      </div>
+
+      <div>
+        <Label>Deadline</Label>
+        <Input
+          type="date"
+          value={editForm.deadline}
+          onChange={(e) =>
+            setEditForm({ ...editForm, deadline: e.target.value })
+          }
+        />
+      </div>
+
+      {!editingTask?.isAssignment && (
+        <div>
+          <Label>Priority</Label>
+          <Select
+            value={editForm.priority}
+            onValueChange={(value: any) =>
+              setEditForm({ ...editForm, priority: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <Button className="w-full gradient-bg" onClick={handleUpdateTask}>
+        Save Changes
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
         </div>
       </div>
 
@@ -1761,9 +1999,15 @@ useEffect(() => {
                 </div>
 
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="w-8 h-8">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
+                 <Button
+  variant="ghost"
+  size="icon"
+  className="w-8 h-8"
+  onClick={() => openEditModal(task)}
+>
+  <Edit2 className="w-4 h-4" />
+</Button>
+
                   {/* <Button 
                     variant="ghost" 
                     size="icon" 
@@ -1782,6 +2026,19 @@ useEffect(() => {
     <Trash2 className="w-4 h-4" />
   </Button>
 )} */}
+
+     <Button
+    variant="ghost"
+    size="icon"
+    className="w-8 h-8 text-destructive hover:text-destructive"
+    onClick={() => {
+      if (confirm("Are you sure you want to delete this item?")) {
+        handleDeleteTask(task);
+      }
+    }}
+  >
+    <Trash2 className="w-4 h-4" />
+  </Button>
 <div className="flex flex-wrap items-center gap-2 mb-1">
   <h3 className={cn(
     "font-semibold",

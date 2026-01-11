@@ -7,38 +7,46 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useTasks } from "@/context/TaskContext";
 
-const upcomingTasks = [
-  {
-    id: 1,
-    title: "Submit Math Assignment",
-    subject: "Mathematics",
-    deadline: "Today, 6:00 PM",
-    priority: "high",
-    status: "pending",
-  },
-  {
-    id: 2,
-    title: "Physics Lab Report",
-    subject: "Physics",
-    deadline: "Tomorrow, 11:00 AM",
-    priority: "medium",
-    status: "in-progress",
-  },
-  {
-    id: 3,
-    title: "English Essay Draft",
-    subject: "English",
-    deadline: "May 18, 2024",
-    priority: "low",
-    status: "pending",
-  },
-];
+// const upcomingTasks = [
+//   {
+//     id: 1,
+//     title: "Submit Math Assignment",
+//     subject: "Mathematics",
+//     deadline: "Today, 6:00 PM",
+//     priority: "high",
+//     status: "pending",
+//   },
+//   {
+//     id: 2,
+//     title: "Physics Lab Report",
+//     subject: "Physics",
+//     deadline: "Tomorrow, 11:00 AM",
+//     priority: "medium",
+//     status: "in-progress",
+//   },
+//   {
+//     id: 3,
+//     title: "English Essay Draft",
+//     subject: "English",
+//     deadline: "May 18, 2024",
+//     priority: "low",
+//     status: "pending",
+//   },
+// ];
 
 export function RightSidebar() {
    const { user } = useAuth();
   const navigate = useNavigate();
-
+const { tasks } = useTasks();
+const upcomingTasks = tasks
+  .filter((t) => t.status !== "completed")
+  .sort(
+    (a, b) =>
+      new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  )
+  .slice(0, 3);
   const userName = user?.displayName || "User";
   const userInitials =
     user?.displayName
@@ -226,9 +234,9 @@ export function RightSidebar() {
                     ) : (
                       <Clock className="w-3 h-3" />
                     )}
-                    <span className={task.priority === "high" ? "text-destructive font-medium" : ""}>
+                    {/* <span className={task.priority === "high" ? "text-destructive font-medium" : ""}>
                       {task.deadline}
-                    </span>
+                    </span> */}
                   </div>
                 </div>
               </div>
@@ -236,7 +244,14 @@ export function RightSidebar() {
           ))}
         </div>
 
-        <Button variant="ghost" size="sm" className="w-full mt-4 text-primary">
+        <Button variant="ghost" size="sm" className="w-full mt-4 text-primary" onClick={() => {
+  window.dispatchEvent(
+    new CustomEvent("dashboard:navigate", {
+      detail: { section: "tasks" },
+    })
+  );
+}}
+>
           View All Tasks
         </Button>
       </motion.div>
