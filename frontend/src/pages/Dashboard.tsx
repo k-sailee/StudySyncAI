@@ -12,6 +12,7 @@ import { TasksPage } from "@/components/pages/TasksPage";
 import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
 import ContactSupportPage from "./ContactSupport";
 import  TeacherDashboardPage  from "@/components/pages/TeacherDashboardPage";
+import StudyGroupsPage from "./StudyGroups";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +85,8 @@ const userName = user?.displayName || "User";
 
     // Student sections
     switch (activeSection) {
+      case "study-groups":
+        return <StudyGroupsPage />;
       case "live-lessons":
         return <LiveLessonsPage />;
       case "recorded-lessons":

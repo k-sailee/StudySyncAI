@@ -10,7 +10,7 @@ import { LiveLessonsPage } from "@/components/pages/LiveLessonsPage";
 import { RecordedLessonsPage } from "@/components/pages/RecordedLessonsPage";
 import { TasksPage } from "@/components/pages/TasksPage";
 import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
-import TeacherDashboardPage from "@/components/pages/TeacherDashboardPage";
+import  TeacherDashboardPage  from "@/components/pages/TeacherDashboardPage";
 import ContactSupportPage from "./ContactSupport";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
@@ -123,6 +123,8 @@ useEffect(() => {
 
     /* ================= STUDENT ================= */
     switch (activeSection) {
+      case "study-groups":
+        return <StudyGroupsPage />;
       case "live-lessons":
         return <LiveLessonsPage />;
 
