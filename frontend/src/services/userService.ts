@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Use same-origin proxy (/api) in dev/preview to avoid CORS; allow override via VITE_API_URL for production
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 // Create axios instance
 const api = axios.create({

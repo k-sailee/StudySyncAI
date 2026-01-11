@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSearchParams , useLocation} from "react-router-dom";
 
 import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
+import TeacherLiveSessionsPage from "@/components/pages/TeacherLiveSessionsPage";
 
 /* ✅ ADDED */
 import TeacherScheduledClasses from "@/components/dashboard/TeacherScheduledClasses";
@@ -109,6 +110,8 @@ useEffect(() => {
           );
 
         case "live-sessions":
+          return <TeacherLiveSessionsPage />;
+
         case "assignments":
           return <TeacherAssignmentsPage />;
 

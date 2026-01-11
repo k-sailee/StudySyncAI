@@ -1,7 +1,19 @@
 import axios from "axios";
+import { auth } from "@/config/firebase";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const API = axios.create({
-  baseURL: "http://localhost:8080/api/scheduler",
+  baseURL: `${API_BASE_URL}/scheduler`,
+});
+
+// Add auth token to requests
+API.interceptors.request.use(async (config) => {
+  const token = await auth.currentUser?.getIdToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const createClass = async (data: any) => {

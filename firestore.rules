@@ -5,6 +5,11 @@ service cloud.firestore {
     // Users collection - users can only read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Subcollections under users (connections, etc)
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Tasks collection - users can only access their own tasks
@@ -14,11 +19,33 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
+    // Assignments collection - teacher can create, students can read their own
+    match /assignments/{assignmentId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.assignedBy;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.assignedBy || request.auth.uid == resource.data.assignedTo);
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.assignedBy;
+    }
+    
+    // Classes/Schedules collection - teacher can create and manage
+    match /classes/{classId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.teacherId;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.teacherId || request.auth.uid in resource.data.students);
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.teacherId;
+    }
+    
     // Schedules collection - users can only access their own schedules
     match /schedules/{scheduleId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Connections collection
+    match /connections/{connectionId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.teacherId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.requestedBy;
+      allow update: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.teacherId);
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.teacherId);
     }
     
     // Default deny all
