@@ -28,32 +28,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-<<<<<<< Updated upstream
-         <TaskProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-<Route path="/profile" element={<ProfilePage />} />
-
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
-            {/* <Route path="/my-tasks" element={<MyTasks />} /> */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        </TaskProvider>
-=======
-        {/* ✅ WRAPPED WITH ScheduleProvider */}
-        <ScheduleProvider>
-          <BrowserRouter>
+        <TaskProvider>
+          {/* ✅ WRAPPED WITH ScheduleProvider */}
+          <ScheduleProvider>
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -76,7 +54,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </ScheduleProvider>
->>>>>>> Stashed changes
+        </TaskProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

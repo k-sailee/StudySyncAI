@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5001/api/scheduler",
+  baseURL: "http://localhost:8080/api/scheduler",
 });
 
 export const createClass = async (data: any) => {
