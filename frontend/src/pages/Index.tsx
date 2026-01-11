@@ -101,6 +101,9 @@ useEffect(() => {
             </div>
           );
 
+        case "contact-support":
+          return <ContactSupportPage />;
+
         case "my-classes":
           return (
             <div className="space-y-6">

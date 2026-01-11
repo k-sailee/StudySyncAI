@@ -67,6 +67,8 @@ const userName = user?.displayName || "User";
               <TeacherDashboardPage />
             </div>
           );
+        case "contact-support":
+          return <ContactSupportPage />;
         case "my-classes":
         case "live-sessions":
         case "assignments":
