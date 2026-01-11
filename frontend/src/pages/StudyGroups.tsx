@@ -6,7 +6,7 @@ import { auth } from "@/config/firebase";
 import { useToast } from "@/hooks/use-toast";
 import StudyGroupCard from "@/components/dashboard/StudyGroupCard";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users } from "lucide-react";
 
@@ -248,11 +248,11 @@ export default function StudyGroupsPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className={`px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white`}>{selectedGroup?.visibility === 'public' ? 'Public' : 'Private'}</div>
-              <Sheet.Close asChild>
+              <SheetClose asChild>
                 <Button variant="ghost" size="icon" aria-label="Close">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </Button>
-              </Sheet.Close>
+              </SheetClose>
             </div>
           </div>
 
