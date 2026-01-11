@@ -13,6 +13,7 @@ import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
 import  TeacherDashboardPage  from "@/components/pages/TeacherDashboardPage";
 import ContactSupportPage from "./ContactSupport";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
+import StudyGroupsPage from "./StudyGroups";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams , useLocation} from "react-router-dom";
