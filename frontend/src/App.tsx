@@ -14,16 +14,18 @@ import ProfilePage from "@/pages/ProfilePage";
 import { TaskProvider } from "@/context/TaskContext";
 
 
-
+import TaskBootstrap from "@/components/TaskBootstrap";
 const queryClient = new QueryClient();
 
 const App = () => (
+ 
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <AuthProvider>
          <TaskProvider>
+            <TaskBootstrap />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />

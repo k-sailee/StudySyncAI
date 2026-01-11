@@ -1,44 +1,33 @@
 import { createContext, useContext, useState } from "react";
+import { Task } from "@/types/task";
 
-export type TaskStatus = "pending" | "in-progress" | "completed";
-export type TaskPriority = "low" | "medium" | "high";
-
-export interface Task {
-  id: string;
-  title: string;
-  subject: string;
-  dueDate: string; // ISO string
-  priority: TaskPriority;
-  status: TaskStatus;
-}
-
-interface TaskContextType {
+type TaskContextType = {
   tasks: Task[];
+  setAllTasks: (tasks: Task[]) => void;
   addTask: (task: Task) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-}
+};
 
-const TaskContext = createContext<TaskContextType | undefined>(undefined);
+const TaskContext = createContext<TaskContextType | null>(null);
 
-export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  const addTask = (task: Task) => {
-    setTasks((prev) => [...prev, task]);
+  const setAllTasks = (tasksFromDb: Task[]) => {
+    setTasks(tasksFromDb);
   };
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
+  const addTask = (task: Task) => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, ...updates } : task))
+      prev.some((t) => t.id === task.id) ? prev : [...prev, task]
     );
   };
 
   return (
-    <TaskContext.Provider value={{ tasks, addTask, updateTask }}>
+    <TaskContext.Provider value={{ tasks, setAllTasks, addTask }}>
       {children}
     </TaskContext.Provider>
   );
-};
+}
 
 export const useTasks = () => {
   const ctx = useContext(TaskContext);

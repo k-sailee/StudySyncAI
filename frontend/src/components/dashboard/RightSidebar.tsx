@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useTasks } from "@/context/TaskContext";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { normalizeDate } from "@/utils/date";
+import { Task } from "@/types/task";
 
 // const upcomingTasks = [
 //   {
@@ -38,13 +42,15 @@ import { useTasks } from "@/context/TaskContext";
 
 export function RightSidebar() {
    const { user } = useAuth();
+
+
   const navigate = useNavigate();
 const { tasks } = useTasks();
 const upcomingTasks = tasks
   .filter((t) => t.status !== "completed")
   .sort(
     (a, b) =>
-      new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   )
   .slice(0, 3);
   const userName = user?.displayName || "User";
@@ -74,10 +80,10 @@ const upcomingTasks = tasks
     year: 'numeric' 
   });
 
-  const today = new Date().getDate();
-  const isCurrentMonth = 
-    currentMonth.getMonth() === new Date().getMonth() &&
-    currentMonth.getFullYear() === new Date().getFullYear();
+  // const today = new Date().getDate();
+  // const isCurrentMonth = 
+  //   currentMonth.getMonth() === new Date().getMonth() &&
+  //   currentMonth.getFullYear() === new Date().getFullYear();
 
   const highlightedDays = [5, 12, 15, 22, 28]; // Days with tasks
 
@@ -86,7 +92,41 @@ const upcomingTasks = tasks
     newDate.setMonth(newDate.getMonth() + direction);
     setCurrentMonth(newDate);
   };
+//   const tasksByDate = tasks.reduce((acc: Record<string, any[]>, task) => {
+//   if (!task.deadline) return acc;
 
+//   // deadline must be yyyy-mm-dd
+//   const dateKey = task.deadline;
+//   if (!acc[dateKey]) acc[dateKey] = [];
+//   acc[dateKey].push(task);
+
+//   return acc;
+// }, {});
+
+const today = new Date().getDate();
+
+const isCurrentMonth =
+  currentMonth.getMonth() === new Date().getMonth() &&
+  currentMonth.getFullYear() === new Date().getFullYear();
+
+// const tasksByDate = tasks.reduce((acc: Record<string, any[]>, task) => {
+//   if (!task.deadline) return acc;
+
+//   const dateKey = task.deadline; // yyyy-mm-dd
+//   if (!acc[dateKey]) acc[dateKey] = [];
+//   acc[dateKey].push(task);
+
+//   return acc;
+// }, {});
+const tasksByDate = tasks.reduce((acc, task) => {
+  const dateKey = normalizeDate(task.deadline);
+  if (!dateKey) return acc;
+
+  if (!acc[dateKey]) acc[dateKey] = [];
+  acc[dateKey].push(task);
+
+  return acc;
+}, {});
   return (
     <div className="hidden xl:block w-80 shrink-0 space-y-6">
       {/* Profile Card */}
@@ -153,42 +193,76 @@ const upcomingTasks = tasks
         </div>
 
         <p className="text-sm text-center font-medium mb-3">{monthName}</p>
+<TooltipProvider delayDuration={200}>
+  <div className="grid grid-cols-7 gap-1 text-center text-xs">
+    {['Su','Mo','Tu','We','Th','Fr','Sa'].map((day) => (
+      <div key={day} className="p-2 text-muted-foreground font-medium">
+        {day}
+      </div>
+    ))}
 
-        <div className="grid grid-cols-7 gap-1 text-center text-xs">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-            <div key={day} className="p-2 text-muted-foreground font-medium">
+    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+      <div key={`empty-${i}`} className="p-2" />
+    ))}
+
+    {Array.from({ length: daysInMonth }).map((_, i) => {
+      const day = i + 1;
+      const isToday = isCurrentMonth && day === today;
+
+      const dateKey = `${currentMonth.getFullYear()}-${String(
+        currentMonth.getMonth() + 1
+      ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+      const dayTasks = tasksByDate[dateKey] || [];
+      const hasTask = dayTasks.length > 0;
+
+      return (
+        <Tooltip key={day}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "p-2 rounded-lg text-sm transition-all relative",
+                isToday
+                  ? "bg-primary text-primary-foreground font-bold"
+                  : "hover:bg-accent",
+                hasTask && !isToday && "font-semibold text-primary"
+              )}
+            >
               {day}
-            </div>
-          ))}
-          
-          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} className="p-2" />
-          ))}
-          
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const isToday = isCurrentMonth && day === today;
-            const hasTask = highlightedDays.includes(day);
-            
-            return (
-              <button
-                key={day}
-                className={cn(
-                  "p-2 rounded-lg text-sm transition-all relative",
-                  isToday 
-                    ? "bg-primary text-primary-foreground font-bold" 
-                    : "hover:bg-accent",
-                  hasTask && !isToday && "font-semibold text-primary"
+
+              {hasTask && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
+              )}
+            </button>
+          </TooltipTrigger>
+
+          {hasTask && (
+            <TooltipContent side="right" className="max-w-xs">
+              <div className="space-y-1">
+                {dayTasks.slice(0, 3).map((task) => (
+                  <div key={task.id} className="text-xs">
+                    <span className="font-medium">
+                      {task.isAssignment ? "📘 Assignment" : "📝 Task"}
+                    </span>
+                    : {task.title}
+                  </div>
+                ))}
+
+                {dayTasks.length > 3 && (
+                  <div className="text-xs text-muted-foreground">
+                    +{dayTasks.length - 3} more
+                  </div>
                 )}
-              >
-                {day}
-                {hasTask && !isToday && (
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-secondary rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+              </div>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      );
+    })}
+  </div>
+</TooltipProvider>
+
       </motion.div>
 
       {/* Upcoming Tasks */}
