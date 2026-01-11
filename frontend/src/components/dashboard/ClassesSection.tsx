@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
-import { BookOpen, Users, Clock, ChevronRight } from "lucide-react";
+import { BookOpen, Users, Clock, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 const classes = [
   {
@@ -47,6 +49,19 @@ const classes = [
 ];
 
 export function ClassesSection() {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<any | null>(null);
+
+  const openClass = (c: any) => {
+    setSelectedClass(c);
+    setSheetOpen(true);
+  };
+
+  const closeClass = () => {
+    setSheetOpen(false);
+    setSelectedClass(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -65,6 +80,7 @@ export function ClassesSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 * index }}
             className="group relative bg-card rounded-2xl border border-border shadow-card overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer"
+            onClick={() => openClass(classItem)}
           >
             {/* Header with gradient */}
             <div className={`h-24 bg-gradient-to-br ${classItem.color} p-4 relative`}>
@@ -120,6 +136,47 @@ export function ClassesSection() {
           </motion.div>
         ))}
       </div>
+
+      {/* Sheet / Drawer for class details */}
+      <Sheet open={sheetOpen} onOpenChange={(o) => { if (!o) closeClass(); setSheetOpen(o); }}>
+        <SheetContent side="right">
+          <div className="flex items-start justify-between p-4">
+            <div>
+              <h3 className="text-lg font-semibold">{selectedClass?.name}</h3>
+              <div className="text-sm text-muted-foreground">{selectedClass?.unit}</div>
+            </div>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon" aria-label="Close">
+                <X className="w-4 h-4" />
+              </Button>
+            </SheetClose>
+          </div>
+
+          <div className="px-4 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>{selectedClass?.lastActivity}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="w-4 h-4" />
+                <span>{selectedClass?.students} students</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">{selectedClass?.instructor?.split(' ').map((n:any)=>n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-sm font-medium">{selectedClass?.instructor}</div>
+                <div className="text-xs text-muted-foreground">Instructor</div>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
