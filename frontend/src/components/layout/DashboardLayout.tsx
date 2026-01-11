@@ -48,6 +48,7 @@ const studentNavItems = [
   { id: "study-groups", label: "Study Groups", icon: Users },
   { id: "video-library", label: "Video Library", icon: Film },
   { id: "doubt-solver", label: "Doubt Solver", icon: HelpCircle },
+  { id: "contact-support", label: "Contact Support", icon: HelpCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -59,6 +60,7 @@ const teacherNavItems = [
   { id: "assignments", label: "Assignments", icon: ClipboardList, badge: "12" },
   { id: "student-progress", label: "Student Progress", icon: TrendingUp },
   { id: "doubt-history", label: "Doubt History", icon: HelpCircle },
+  { id: "contact-support", label: "Contact Support", icon: HelpCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 

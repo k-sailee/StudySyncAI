@@ -10,6 +10,7 @@ import { LiveLessonsPage } from "@/components/pages/LiveLessonsPage";
 import { RecordedLessonsPage } from "@/components/pages/RecordedLessonsPage";
 import { TasksPage } from "@/components/pages/TasksPage";
 import { DoubtSolverPage } from "@/components/pages/DoubtSolverPage";
+import ContactSupportPage from "./ContactSupport";
 import  TeacherDashboardPage  from "@/components/pages/TeacherDashboardPage";
 import { ConnectionsPage } from "@/components/pages/ConnectionsPage";
 import { useAuth } from "@/context/AuthContext";
@@ -91,6 +92,8 @@ const userName = user?.displayName || "User";
         return <TasksPage />;
       case "doubt-solver":
         return <DoubtSolverPage />;
+      case "contact-support":
+        return <ContactSupportPage />;
       case "dashboard":
       default:
         return (
@@ -111,7 +114,7 @@ const userName = user?.displayName || "User";
 
   return (
     <DashboardLayout 
-      activeSection={getInitialSection()} 
+      activeSection={activeSection}
       onSectionChange={setActiveSection}
       userRole={userRole}
       showRoleSwitcher={false}

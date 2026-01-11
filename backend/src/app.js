@@ -6,6 +6,7 @@ import connectionsRoutes from "./routes/connections.routes.js";
 import schedulerRoutes from "./routes/scheduler.routes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
+import supportRoutes from "./routes/support.routes.js";
 const app = express();
 
 app.use(cors());
@@ -18,6 +19,7 @@ app.use("/api/connections", connectionsRoutes);
 app.use("/api/scheduler", schedulerRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/support", supportRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
