@@ -11,6 +11,7 @@ import studyGroupsRoutes from "./routes/studyGroups.routes.js";
 import groupsRoutes from "./routes/groups.routes.js";
 import liveSessionsRoutes from "./routes/liveSessions.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
+import zombieGameRoutes from "./routes/zombieGame.routes.js";
 const app = express();
 
 app.use(cors());
@@ -28,6 +29,7 @@ app.use("/api/studygroups", studyGroupsRoutes);
 app.use("/api/groups", groupsRoutes);
 app.use("/api/live-sessions", liveSessionsRoutes);
 app.use("/progress", progressRoutes);
+app.use("/api/zombie", zombieGameRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Coffee, Wind, Gamepad2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { completeFocusSession } from "@/services/progressService";
+import PeaceMode from "./PeaceMode";
+
 type TimerMode = "focus" | "break";
 
 export function FocusTimer() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<TimerMode>("focus");
+  const [showPeaceMode, setShowPeaceMode] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -105,7 +110,8 @@ const handleFocusComplete = async (minutes: number) => {
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <motion.div
+    <>
+      <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       id="focus-timer"
@@ -240,13 +246,17 @@ const handleFocusComplete = async (minutes: number) => {
             </div>
             <span className="text-xs font-medium">Mind Map</span>
           </button>
-          <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/50 hover:bg-accent transition-colors group">
+          <button 
+            onClick={() => setShowPeaceMode(true)}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/50 hover:bg-accent transition-colors group">
             <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Wind className="w-5 h-5 text-success" />
             </div>
-            <span className="text-xs font-medium">Breathe</span>
+            <span className="text-xs font-medium">Peace Mode</span>
           </button>
-          <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/50 hover:bg-accent transition-colors group">
+          <button 
+            onClick={() => navigate('/zombie-game')}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/50 hover:bg-accent transition-colors group">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Gamepad2 className="w-5 h-5 text-primary" />
             </div>
@@ -255,5 +265,10 @@ const handleFocusComplete = async (minutes: number) => {
         </div>
       </div>
     </motion.div>
+
+      <AnimatePresence>
+        {showPeaceMode && <PeaceMode onClose={() => setShowPeaceMode(false)} />}
+      </AnimatePresence>
+    </>
   );
 }
