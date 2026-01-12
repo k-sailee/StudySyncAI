@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { TaskProvider } from "@/context/TaskContext";
 import { ScheduleProvider } from "@/context/ScheduleContext";
-
+import ProgressTracker from "./pages/progress/ProgressTracker";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TaskBootstrap from "@/components/TaskBootstrap";
 
@@ -39,6 +39,8 @@ const App = () => (
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/progress" element={<ProgressTracker />} />
+
 {/* <Route
   path="/teacher/recommend-lecture"
   element={<RecommendLecture />}

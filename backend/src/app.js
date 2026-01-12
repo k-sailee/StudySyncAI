@@ -10,6 +10,7 @@ import supportRoutes from "./routes/support.routes.js";
 import studyGroupsRoutes from "./routes/studyGroups.routes.js";
 import groupsRoutes from "./routes/groups.routes.js";
 import liveSessionsRoutes from "./routes/liveSessions.routes.js";
+import progressRoutes from "./routes/progress.routes.js";
 const app = express();
 
 app.use(cors());
@@ -26,6 +27,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/studygroups", studyGroupsRoutes);
 app.use("/api/groups", groupsRoutes);
 app.use("/api/live-sessions", liveSessionsRoutes);
+app.use("/progress", progressRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

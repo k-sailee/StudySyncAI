@@ -20,7 +20,7 @@ import { useSearchParams , useLocation} from "react-router-dom";
 import RecommendLecture from "./teacher/RecommendLecture";
 import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
 import TeacherLiveSessionsPage from "@/components/pages/TeacherLiveSessionsPage";
-
+import ProgressTracker from "./progress/ProgressTracker";
 /* ✅ ADDED */
 import TeacherScheduledClasses from "@/components/dashboard/TeacherScheduledClasses";
 import StudentScheduledClasses from "@/components/dashboard/StudentScheduledClasses";
@@ -144,10 +144,13 @@ useEffect(() => {
 
       case "tasks":
         return <TasksPage />;
-
+      
+      case "progress":
+        return <ProgressTracker />;
       case "doubt-solver":
         return <DoubtSolverPage />;
 
+      
       case "contact-support":
         return <ContactSupportPage />;
 

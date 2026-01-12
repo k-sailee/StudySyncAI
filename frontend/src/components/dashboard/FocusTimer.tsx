@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Coffee, Wind, Gamepad2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
+import { completeFocusSession } from "@/services/progressService";
 type TimerMode = "focus" | "break";
 
 export function FocusTimer() {
@@ -15,31 +15,67 @@ export function FocusTimer() {
 
   const focusTime = 25 * 60;
   const breakTime = 5 * 60;
+useEffect(() => {
+  if (isRunning && timeLeft > 0) {
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+  }
 
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      // Timer completed
-      if (mode === "focus") {
-        setMode("break");
-        setTimeLeft(breakTime);
-      } else {
-        setMode("focus");
-        setTimeLeft(focusTime);
-      }
-      setIsRunning(false);
+  // 🔥 THIS IS THE IMPORTANT PART
+  if (timeLeft === 0 && isRunning) {
+    setIsRunning(false);
+
+    if (mode === "focus") {
+      // ⬇️ LOG FOCUS SESSION HERE
+      handleFocusComplete(focusTime / 60); // 25 minutes
+
+      setMode("break");
+      setTimeLeft(breakTime);
+    } else {
+      setMode("focus");
+      setTimeLeft(focusTime);
     }
+  }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, timeLeft, mode]);
+  return () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+}, [isRunning, timeLeft, mode]);
 
+  // useEffect(() => {
+  //   if (isRunning && timeLeft > 0) {
+  //     intervalRef.current = setInterval(() => {
+  //       setTimeLeft((prev) => prev - 1);
+  //     }, 1000);
+  //   } else if (timeLeft === 0) {
+  //     // Timer completed
+  //     if (mode === "focus") {
+  //       setMode("break");
+  //       setTimeLeft(breakTime);
+  //     } else {
+  //       setMode("focus");
+  //       setTimeLeft(focusTime);
+  //     }
+  //     setIsRunning(false);
+  //   }
+
+  //   return () => {
+  //     if (intervalRef.current) {
+  //       clearInterval(intervalRef.current);
+  //     }
+  //   };
+  // }, [isRunning, timeLeft, mode]);
+const handleFocusComplete = async (minutes: number) => {
+  try {
+    await completeFocusSession(minutes);
+    console.log("Focus session logged:", minutes);
+  } catch (err) {
+    console.error("Failed to log focus session", err);
+  }
+};
   const toggleTimer = () => {
     setIsRunning(!isRunning);
   };
