@@ -5,6 +5,7 @@ import {
   listStudyGroups,
   getStudyGroup,
   joinStudyGroup,
+  sendMessage,
   approveRequest,
   leaveStudyGroup,
   deleteStudyGroup,
@@ -26,6 +27,9 @@ router.get("/:id", auth, getStudyGroup);
 
 // Join or request to join
 router.post("/:id/join", auth, joinStudyGroup);
+
+// Send message (auth required)
+router.post("/:id/messages", auth, sendMessage);
 
 // Approve request (organizer)
 router.post("/:id/requests/:requestId/approve", auth, approveRequest);

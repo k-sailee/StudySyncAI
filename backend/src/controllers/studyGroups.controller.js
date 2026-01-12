@@ -1,4 +1,5 @@
 import { db } from "../config/firebase.js";
+import admin from "../config/firebase.js";
 import auth from "../middleware/auth.js";
 
 // NOTE: controller functions assume `req.user` is set by auth middleware
@@ -44,6 +45,16 @@ export const createStudyGroup = async (req, res) => {
       role: "organizer",
       joinedAt: new Date().toISOString(),
     });
+
+    // Also add organizer to parent document members array for frontend convenience
+    try {
+      await db.collection("studyGroups").doc(ref.id).update({
+        members: admin.firestore.FieldValue.arrayUnion({ userId: organizerId, role: "organizer" }),
+      });
+    } catch (arrErr) {
+      // If update fails (shouldn't), log and continue
+      console.warn("Failed to update parent members array on create:", arrErr.message || arrErr);
+    }
 
     res.status(201).json({ success: true, id: ref.id, group: { id: ref.id, ...data } });
   } catch (err) {
@@ -111,23 +122,63 @@ export const getStudyGroup = async (req, res) => {
     if (!doc.exists) return res.status(404).json({ success: false, message: "Group not found" });
 
     const data = doc.data();
-
-    if (data.visibility === "private") {
-      const isMemberSnap = await db.collection("studyGroups").doc(id).collection("members").doc(userId).get();
-      const isMember = isMemberSnap.exists;
-      const isOrganizer = userId === data.organizerId;
-      if (!isMember && !isOrganizer) {
-        return res.status(403).json({ success: false, message: "Private group. Access denied." });
+    // determine membership (organizer counts as member)
+    let isMember = false;
+    if (userId) {
+      try {
+        const isMemberSnap = await db.collection("studyGroups").doc(id).collection("members").doc(userId).get();
+        isMember = isMemberSnap.exists || userId === data.organizerId;
+      } catch (e) {
+        console.warn("Membership check failed:", e.message || e);
+        isMember = userId === data.organizerId;
       }
     }
 
-    const membersSnap = await db.collection("studyGroups").doc(id).collection("members").limit(100).get();
-    const members = membersSnap.docs.map((d) => d.data());
+    // only return members list to members/organizer
+    let members = [];
+    if (isMember) {
+      const membersSnap = await db.collection("studyGroups").doc(id).collection("members").limit(100).get();
+      members = membersSnap.docs.map((d) => d.data());
+    }
 
-    res.json({ success: true, group: { id: doc.id, ...data }, members });
+    res.json({ success: true, group: { id: doc.id, ...data }, isMember, members });
   } catch (err) {
     console.error("Get study group error:", err);
     res.status(500).json({ success: false, message: "Failed to fetch group", error: err.message });
+  }
+};
+
+export const sendMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const { text } = req.body;
+    if (!id || !userId) return res.status(400).json({ success: false, message: 'Missing params or unauthorized' });
+    if (!text || typeof text !== 'string') return res.status(400).json({ success: false, message: 'Message text required' });
+
+    const groupRef = db.collection('studyGroups').doc(id);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) return res.status(404).json({ success: false, message: 'Group not found' });
+    const group = groupDoc.data();
+
+    // verify membership
+    const memberRef = groupRef.collection('members').doc(userId);
+    const memberDoc = await memberRef.get();
+    const isMember = memberDoc.exists || userId === group.organizerId;
+    if (!isMember) return res.status(403).json({ success: false, message: 'Only group members can send messages' });
+
+    // Save message with server timestamp
+    const msgRef = await groupRef.collection('messages').add({
+      text,
+      senderId: userId,
+      senderName: req.user?.displayName || req.user?.email || userId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, id: msgRef.id });
+  } catch (err) {
+    console.error('Send message error:', err);
+    res.status(500).json({ success: false, message: 'Failed to send message', error: err.message });
   }
 };
 
@@ -144,10 +195,25 @@ export const joinStudyGroup = async (req, res) => {
 
     const memberRef = groupRef.collection("members").doc(userId);
     const memberDoc = await memberRef.get();
-    if (memberDoc.exists) return res.status(400).json({ success: false, message: "Already a member" });
+
+    // If already a member in subcollection, make sure parent doc array also contains the member and return success (idempotent)
+    if (memberDoc.exists) {
+      try {
+        await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion({ userId, role: "member" }) });
+      } catch (uErr) {
+        console.warn("Failed to ensure parent members array contains existing member:", uErr.message || uErr);
+      }
+      return res.json({ success: true, message: "Already a member" });
+    }
 
     if (data.visibility === "public") {
       await memberRef.set({ userId, role: "member", joinedAt: new Date().toISOString() });
+      // also add to parent members array for quick reads by frontend
+      try {
+        await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion({ userId, role: "member" }) });
+      } catch (uErr) {
+        console.warn("Failed to update parent members array on join:", uErr.message || uErr);
+      }
       return res.json({ success: true, message: "Joined group" });
     }
 
@@ -184,6 +250,12 @@ export const approveRequest = async (req, res) => {
     const reqData = reqDoc.data();
 
     await groupRef.collection("members").doc(reqData.userId).set({ userId: reqData.userId, role: "member", joinedAt: new Date().toISOString() });
+    // also add to parent members array
+    try {
+      await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion({ userId: reqData.userId, role: "member" }) });
+    } catch (uErr) {
+      console.warn("Failed to update parent members array on approve:", uErr.message || uErr);
+    }
     await reqRef.update({ status: "approved", updatedAt: new Date().toISOString() });
 
     res.json({ success: true, message: "Request approved" });
@@ -200,10 +272,20 @@ export const leaveStudyGroup = async (req, res) => {
     if (!id || !userId) return res.status(400).json({ success: false, message: "Missing params" });
 
     const memberRef = db.collection("studyGroups").doc(id).collection("members").doc(userId);
-    const memberDoc = await memberRef.get();
-    if (!memberDoc.exists) return res.status(400).json({ success: false, message: "Not a member" });
+    // Delete subcollection doc if exists (idempotent)
+    try {
+      await memberRef.delete();
+    } catch (delErr) {
+      console.warn("Failed to delete member subcollection doc (may not exist):", delErr.message || delErr);
+    }
 
-    await memberRef.delete();
+    // Remove from parent members array (best-effort)
+    try {
+      await db.collection("studyGroups").doc(id).update({ members: admin.firestore.FieldValue.arrayRemove({ userId, role: "member" }) });
+    } catch (uErr) {
+      console.warn("Failed to remove member from parent members array:", uErr.message || uErr);
+    }
+
     res.json({ success: true, message: "Left group" });
   } catch (err) {
     console.error("Leave study group error:", err);

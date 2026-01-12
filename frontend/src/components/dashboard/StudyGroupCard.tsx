@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Lock, Globe, Trash2 } from "lucide-react";
@@ -8,6 +9,7 @@ interface Props {
   onJoin: (id: string) => void;
   onDelete?: (id: string) => void;
   onOpen?: (id: string) => void;
+  onLeave?: (id: string) => void;
   joining?: boolean;
   isMember?: boolean;
   requestSent?: boolean;
@@ -24,8 +26,9 @@ const subjectColor = (subject: string) => {
   return "from-violet-500 to-purple-600";
 };
 
-export default function StudyGroupCard({ group, onJoin, onDelete, onOpen, joining, isMember, requestSent, isAdmin }: Props) {
+export default function StudyGroupCard({ group, onJoin, onDelete, onOpen, onLeave, joining, isMember, requestSent, isAdmin }: Props) {
   const grad = subjectColor(group.subject || "");
+  const navigate = useNavigate();
   return (
     <div onClick={() => onOpen?.(group.id)} className="group relative bg-card rounded-2xl border border-border shadow-card overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer">
       <div className={`h-20 bg-gradient-to-br ${grad} p-4 relative`}> 
@@ -60,7 +63,12 @@ export default function StudyGroupCard({ group, onJoin, onDelete, onOpen, joinin
               )}
 
               {isMember ? (
-                <Button variant="ghost" size="sm" disabled>Joined</Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onOpen?.(group.id); }}>Open</Button>
+                  {!isAdmin && (
+                    <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); onLeave?.(group.id); }}>Leave</Button>
+                  )}
+                </div>
               ) : (
                 <Button size="sm" onClick={(e) => { e.stopPropagation(); onJoin(group.id); }} disabled={joining}>{joining ? "Joining..." : "Join"}</Button>
               )}

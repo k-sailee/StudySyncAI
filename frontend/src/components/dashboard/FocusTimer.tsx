@@ -202,7 +202,7 @@ export function FocusTimer() {
             <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Coffee className="w-5 h-5 text-secondary" />
             </div>
-            <span className="text-xs font-medium">Take a Break</span>
+            <span className="text-xs font-medium">Mind Map</span>
           </button>
           <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-accent/50 hover:bg-accent transition-colors group">
             <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center group-hover:scale-110 transition-transform">

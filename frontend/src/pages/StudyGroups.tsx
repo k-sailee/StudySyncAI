@@ -9,6 +9,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users } from "lucide-react";
+import GroupChatPage from "./GroupChat";
 
 // local subject -> gradient helper (same logic as StudyGroupCard)
 const subjectColor = (subject: string) => {
@@ -84,19 +85,49 @@ export default function StudyGroupsPage() {
   };
 
   const handleJoin = async (id: string) => {
+    const prev = groups;
     try {
       setJoiningId(id);
       if (!user) throw new Error("Not authenticated");
+
+      // Optimistically update local groups so the UI shows Joined immediately
+      setGroups((prevG) => prevG.map((g) => {
+        if (g.id !== id) return g;
+        const already = Array.isArray(g.members) ? g.members.some((m) => m.userId === user?.uid) : false;
+        if (already) return g;
+        const updatedMembers = Array.isArray(g.members) ? [...g.members, { userId: user?.uid, role: 'member', joinedAt: new Date().toISOString() }] : [{ userId: user?.uid, role: 'member', joinedAt: new Date().toISOString() }];
+        return { ...g, members: updatedMembers, memberCount: (g.memberCount || updatedMembers.length) };
+      }));
+
+      // If the detail sheet is open for this group, update membersProfiles/selectedGroup locally
+      if (selectedGroup?.id === id) {
+        setMembersProfiles((prevM) => {
+          if (prevM.some((m) => m.uid === user?.uid)) return prevM;
+          return [...prevM, { uid: user?.uid, displayName: user?.displayName || user?.uid, role: 'member' }];
+        });
+        setSelectedGroup((s) => s ? { ...s, memberCount: (s.memberCount || 0) + 1 } : s);
+      }
+
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`/api/studygroups/${id}/join`, { method: "POST", headers: { Authorization: `Bearer ${token || ""}` } });
       const d = await res.json();
-      if (!res.ok) throw new Error(d?.message || "Failed");
+      if (!res.ok) {
+        // rollback optimistic changes
+        setGroups(prev);
+        if (selectedGroup?.id === id) {
+          setMembersProfiles((prevM) => prevM.filter((m) => m.uid !== user?.uid));
+          setSelectedGroup((s) => s ? { ...s, memberCount: Math.max(0, (s.memberCount || 0) - 1) } : s);
+        }
+        throw new Error(d?.message || "Failed to join");
+      }
+
       toast({ title: "Success", description: d.message });
-      // Refresh list and open drawer for the group
-      fetchGroups();
+
+      // Optionally open detail sheet (keeps UX similar to before)
       openGroup(id);
-    } catch (err) { toast({ title: "Error", description: err.message || "Failed", variant: "destructive" }); }
-    finally { setJoiningId(null); }
+    } catch (err) {
+      toast({ title: "Error", description: err.message || "Failed", variant: "destructive" });
+    } finally { setJoiningId(null); }
   };
 
   const handleDelete = async (id: string) => {
@@ -132,7 +163,8 @@ export default function StudyGroupsPage() {
       if (!res.ok) throw new Error(data?.message || "Failed to load group");
 
       const group = data.group;
-      setSelectedGroup(group);
+      // include backend-provided isMember flag so embedded chat knows membership immediately
+      setSelectedGroup({ ...group, isMember: Boolean(data.isMember) });
 
       // fetch admin profile
       try {
@@ -163,16 +195,77 @@ export default function StudyGroupsPage() {
     }
   };
 
+  // Called when embedded GroupChat reports a successful join
+  const handleGroupChatJoinSuccess = (id: string) => {
+    if (!user) return;
+    setGroups((prev) => prev.map((g) => {
+      if (g.id !== id) return g;
+      const already = Array.isArray(g.members) ? g.members.some((m) => m.userId === user?.uid) : false;
+      if (already) return { ...g, memberCount: (g.memberCount || (g.members?.length||0)) };
+      const updatedMembers = Array.isArray(g.members) ? [...g.members, { userId: user.uid, role: 'member', joinedAt: new Date().toISOString() }] : [{ userId: user.uid, role: 'member', joinedAt: new Date().toISOString() }];
+      return { ...g, members: updatedMembers, memberCount: (g.memberCount || updatedMembers.length) };
+    }));
+
+    // update selected group and membersProfiles if open
+    if (selectedGroup?.id === id) {
+      setSelectedGroup((s) => s ? { ...s, isMember: true, memberCount: (s.memberCount || 0) + 1 } : s);
+      setMembersProfiles((prevM) => prevM.some((m) => m.uid === user.uid) ? prevM : [...prevM, { uid: user.uid, displayName: user.displayName || user.uid, role: 'member' }]);
+    }
+  };
+
+  // Called when embedded GroupChat reports a successful leave
+  const handleGroupChatLeaveSuccess = (id: string) => {
+    if (!user) return;
+    setGroups((prev) => prev.map((g) => {
+      if (g.id !== id) return g;
+      const updatedMembers = Array.isArray(g.members) ? g.members.filter((m) => m.userId !== user?.uid) : [];
+      return { ...g, members: updatedMembers, memberCount: Math.max(0, (g.memberCount || updatedMembers.length) - 1) };
+    }));
+
+    if (selectedGroup?.id === id) {
+      setMembersProfiles((prevM) => prevM.filter((m) => m.uid !== user.uid));
+      // close the sheet since user left
+      setSheetOpen(false);
+      setSelectedGroup(null);
+    }
+  };
+
   const handleLeave = async (id: string) => {
+    const prev = groups;
     try {
       if (!user) throw new Error('Not authenticated');
+
+      // Optimistically update local groups to remove membership immediately
+      setGroups((prevG) => prevG.map((g) => {
+        if (g.id !== id) return g;
+        const updatedMembers = Array.isArray(g.members) ? g.members.filter((m) => m.userId !== user?.uid) : [];
+        return { ...g, members: updatedMembers, memberCount: Math.max(0, (g.memberCount || 0) - 1) };
+      }));
+
+      // If the detail sheet is open for this group, update membersProfiles/selectedGroup locally
+      if (selectedGroup?.id === id) {
+        setMembersProfiles((prevM) => prevM.filter((m) => m.uid !== user?.uid));
+        setSelectedGroup((s) => s ? { ...s, memberCount: Math.max(0, (s.memberCount || 0) - 1) } : s);
+      }
+
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`/api/studygroups/${id}/leave`, { method: 'POST', headers: { Authorization: `Bearer ${token || ''}` } });
       const d = await res.json();
-      if (!res.ok) throw new Error(d?.message || 'Failed to leave');
+      if (!res.ok) {
+        // rollback optimistic changes
+        setGroups(prev);
+        if (selectedGroup?.id === id) {
+          // re-add member locally (best-effort)
+          setMembersProfiles((prevM) => {
+            if (prevM.some((m) => m.uid === user?.uid)) return prevM;
+            return [...prevM, { uid: user?.uid, displayName: user?.displayName || user?.uid, role: 'member' }];
+          });
+          setSelectedGroup((s) => s ? { ...s, memberCount: (s.memberCount || 0) + 1 } : s);
+        }
+        throw new Error(d?.message || 'Failed to leave');
+      }
+
       toast({ title: 'Left', description: d.message });
-      fetchGroups();
-      if (selectedGroup?.id === id) openGroup(id);
     } catch (err) {
       toast({ title: 'Error', description: err.message || 'Failed to leave', variant: 'destructive' });
     }
@@ -224,93 +317,35 @@ export default function StudyGroupsPage() {
             group={{ ...g, memberCount: g.members?.length }}
             onJoin={handleJoin}
             joining={joiningId === g.id}
-            isMember={g.members?.some?.((m) => m.userId === user?.uid)}
+            isMember={g.organizerId === user?.uid || g.members?.some?.((m) => m.userId === user?.uid)}
             requestSent={false}
             isAdmin={g.organizerId === user?.uid}
             onDelete={handleDelete}
+            onLeave={handleLeave}
             onOpen={openGroup}
           />
         ))}
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={(o) => { if (!o) { setSheetOpen(false); setSelectedGroup(null); } setSheetOpen(o); }}>
-        <SheetContent side="right">
-          {/* Gradient header */}
-          <div className={`h-28 bg-gradient-to-br ${selectedGroup ? (selectedGroup.subject?.toLowerCase().includes('math') ? 'from-blue-500 to-cyan-500' : selectedGroup.subject?.toLowerCase().includes('physics') ? 'from-orange-500 to-red-500' : 'from-violet-500 to-purple-600') : 'from-violet-500 to-purple-600'} p-4 flex items-start justify-between`}> 
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
+          <SheetContent side="right" className="p-0">
+            {/* Render chat UI inside the sheet */}
+            {selectedGroup ? (
+              <div className="h-full">
+                <GroupChatPage
+                  groupId={selectedGroup.id}
+                  initialGroup={selectedGroup}
+                  initialIsMember={Boolean(selectedGroup.isMember) || membersProfiles.some((m) => m.uid === user?.uid)}
+                  initialMembers={membersProfiles}
+                  hideHeader={false}
+                  onJoinSuccess={handleGroupChatJoinSuccess}
+                  onLeaveSuccess={handleGroupChatLeaveSuccess}
+                />
               </div>
-              <div>
-                <div className="text-white text-lg font-semibold">{selectedGroup ? selectedGroup.name : 'Loading...'}</div>
-                <div className="text-white/80 text-sm">{selectedGroup?.subject}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white`}>{selectedGroup?.visibility === 'public' ? 'Public' : 'Private'}</div>
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon" aria-label="Close">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </Button>
-              </SheetClose>
-            </div>
-          </div>
-
-          <div className="px-6 pt-4 pb-24 space-y-4">
-            {/* Meta row */}
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2"><Users className="w-4 h-4" /> <span>{membersProfiles.length} members</span></div>
-                <div className="text-xs">{selectedGroup?.subject}</div>
-              </div>
-              <div className="text-xs">{selectedGroup?.createdAt ? new Date(selectedGroup.createdAt).toLocaleDateString() : ''}</div>
-            </div>
-
-            {/* Admin card */}
-            <div className="bg-card rounded-lg p-3 flex items-center gap-3 border border-border">
-              <Avatar>
-                <AvatarFallback>{adminProfile?.displayName?.slice(0,2) || 'AD'}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="text-sm font-medium">{adminProfile?.displayName || selectedGroup?.organizerId}</div>
-                <div className="text-xs text-muted-foreground">Organizer</div>
-              </div>
-            </div>
-
-            {/* Members list */}
-            <div>
-              <div className="text-sm font-medium">Members</div>
-              <div className="mt-3 max-h-56 overflow-auto divide-y divide-border rounded-md">
-                {membersProfiles.length === 0 && <div className="p-3 text-sm text-muted-foreground">No members yet</div>}
-                {membersProfiles.map((m) => (
-                  <div key={m.uid} className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar size="sm">
-                        <AvatarFallback>{m.displayName?.slice(0,2) || m.uid.slice(0,2)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="text-sm font-medium">{m.displayName}</div>
-                        <div className="text-xs text-muted-foreground">{m.role}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{m.uid === selectedGroup?.organizerId ? 'organizer' : 'member'}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sticky bottom action bar */}
-          <div className="absolute left-0 right-0 bottom-0 px-6 py-4 bg-gradient-to-t from-background/80 to-transparent backdrop-blur-sm border-t border-border">
-            <div className="max-w-2xl mx-auto flex items-center justify-end gap-3">
-              {selectedGroup && membersProfiles.some((m) => m.uid === user?.uid) ? (
-                <Button variant="outline" onClick={() => handleLeave(selectedGroup.id)}>Leave</Button>
-              ) : (
-                <Button onClick={() => handleJoin(selectedGroup.id)}>Join</Button>
-              )}
-            </div>
-          </div>
-        </SheetContent>
+            ) : (
+              <div className="p-6">Loading...</div>
+            )}
+          </SheetContent>
       </Sheet>
     </div>
   );

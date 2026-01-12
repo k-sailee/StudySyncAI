@@ -18,6 +18,7 @@ import LandingPage from "./pages/LandingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import MyClassesPage from "./pages/MyClassesPage";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
+import GroupChatPage from "./pages/GroupChat";
 import RecommendLecture from "@/pages/teacher/RecommendLecture";
 // import RecommendedLectures from "./pages/student/RecommendedLectures";
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
                   }
                 />
 
+                <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChatPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
