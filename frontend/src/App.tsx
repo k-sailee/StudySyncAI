@@ -22,6 +22,7 @@ import GroupChatPage from "./pages/GroupChat";
 import RecommendLecture from "@/pages/teacher/RecommendLecture";
 import ZombieGame from "./pages/ZombieGame";
 // import RecommendedLectures from "./pages/student/RecommendedLectures";
+import MindMap from "@/components/MindMap";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -64,6 +65,7 @@ const App = () => (
                 />
 
                 <Route path="/zombie-game" element={<ProtectedRoute><ZombieGame /></ProtectedRoute>} />
+                <Route path="/mindmap" element={<ProtectedRoute><MindMap /></ProtectedRoute>} />
                 <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChatPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
