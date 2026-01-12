@@ -1,4 +1,5 @@
 import { db } from "../config/firebase.js";
+import admin from "../config/firebase.js";
 
 /**
  * Create a new connection request
@@ -133,13 +134,22 @@ export const getConnections = async (req, res) => {
         usedUserSubcollection = true;
 
         // Fetch the main connection docs for each reference (if present)
-        const connDocs = await Promise.all(
-          userConnSnap.docs.map((d) => db.collection("connections").doc(d.data().connectionId).get())
-        );
+        // Avoid N+1 `.get()` calls by batching `in` queries (10 ids per chunk)
+        const connectionIds = userConnSnap.docs.map((d) => d.data().connectionId).filter(Boolean);
+        const connDocMap = {};
+        if (connectionIds.length) {
+          for (let i = 0; i < connectionIds.length; i += 10) {
+            const chunk = connectionIds.slice(i, i + 10);
+            const snap = await db.collection("connections").where(admin.firestore.FieldPath.documentId(), "in", chunk).get();
+            snap.forEach((doc) => {
+              connDocMap[doc.id] = doc;
+            });
+          }
+        }
 
-        userConnSnap.docs.forEach((d, idx) => {
+        userConnSnap.docs.forEach((d) => {
           const refData = d.data();
-          const mainDoc = connDocs[idx];
+          const mainDoc = connDocMap[refData.connectionId];
           if (mainDoc && mainDoc.exists) {
             const data = mainDoc.data();
             connections.push({ id: mainDoc.id, ...data });
@@ -206,19 +216,23 @@ export const getConnections = async (req, res) => {
       }
     }
 
-    // Fetch user details for all connections
+    // Fetch user details for all connections (batched to avoid N+1 reads)
     const usersMap = {};
-    for (const uid of userIds) {
-      const userDoc = await db.collection("users").doc(uid).get();
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        usersMap[uid] = {
-          uid,
-          displayName: userData.displayName,
-          email: userData.email,
-          role: userData.role,
-          profileImage: userData.profileImage,
-        };
+    const uids = Array.from(userIds).filter(Boolean);
+    if (uids.length) {
+      for (let i = 0; i < uids.length; i += 10) {
+        const chunk = uids.slice(i, i + 10);
+        const snap = await db.collection("users").where(admin.firestore.FieldPath.documentId(), "in", chunk).get();
+        snap.forEach((doc) => {
+          const userData = doc.data();
+          usersMap[doc.id] = {
+            uid: doc.id,
+            displayName: userData.displayName,
+            email: userData.email,
+            role: userData.role,
+            profileImage: userData.profileImage,
+          };
+        });
       }
     }
 

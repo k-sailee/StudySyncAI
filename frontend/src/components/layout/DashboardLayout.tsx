@@ -51,7 +51,6 @@ const studentNavItems = [
   { id: "tasks", label: "My Tasks", icon: CheckSquare, badge: "3" },
   { id: "progress", label: "Progress Tracker", icon: TrendingUp },
   { id: "study-groups", label: "Study Groups", icon: Users },
-  { id: "video-library", label: "Video Library", icon: Film },
   { id: "doubt-solver", label: "Doubt Solver", icon: HelpCircle },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },
   { id: "settings", label: "Settings", icon: Settings },
@@ -69,7 +68,6 @@ const teacherNavItems = [
   icon: PlayCircle,
 },
   { id: "student-progress", label: "Student Progress", icon: TrendingUp },
-  { id: "doubt-history", label: "Doubt History", icon: HelpCircle },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
