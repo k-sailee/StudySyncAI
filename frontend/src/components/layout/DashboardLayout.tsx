@@ -42,7 +42,12 @@ const studentNavItems = [
   { id: "connections", label: "My Teachers", icon: UserPlus },
   { id: "classes", label: "Classes", icon: BookOpen },
   { id: "live-lessons", label: "Live Lessons", icon: Video, badge: "Live" },
-  { id: "recorded-lessons", label: "Recorded Lessons", icon: PlayCircle },
+ {
+  id: "recorded-lessons",
+  label: "Recommended Lectures",
+  icon: PlayCircle,
+}
+,
   { id: "tasks", label: "My Tasks", icon: CheckSquare, badge: "3" },
   { id: "progress", label: "Progress Tracker", icon: TrendingUp },
   { id: "study-groups", label: "Study Groups", icon: Users },
@@ -57,7 +62,12 @@ const teacherNavItems = [
   { id: "connections", label: "My Students", icon: UserPlus },
   { id: "my-classes", label: "My Classes", icon: BookOpen },
   { id: "live-sessions", label: "Live Sessions", icon: Video, badge: "2" },
-  { id: "assignments", label: "Assignments", icon: ClipboardList, badge: "12" },
+  { id: "assignments", label: "Assignments", icon: ClipboardList },
+  {
+  id: "recommend-lecture",
+  label: "Recommended Lectures",
+  icon: PlayCircle,
+},
   { id: "student-progress", label: "Student Progress", icon: TrendingUp },
   { id: "doubt-history", label: "Doubt History", icon: HelpCircle },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },

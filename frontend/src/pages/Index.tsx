@@ -17,7 +17,7 @@ import StudyGroupsPage from "./StudyGroups";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams , useLocation} from "react-router-dom";
-
+import RecommendLecture from "./teacher/RecommendLecture";
 import TeacherAssignmentsPage from "@/components/pages/TeacherAssignmentsPage";
 import TeacherLiveSessionsPage from "@/components/pages/TeacherLiveSessionsPage";
 
@@ -117,6 +117,10 @@ useEffect(() => {
 
         case "assignments":
           return <TeacherAssignmentsPage />;
+        
+        case "recommend-lecture":
+  return <RecommendLecture />;
+
 
         default:
           return (

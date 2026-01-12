@@ -10,7 +10,7 @@ export const getConnectedStudents = async () => {
   const q = query(
     collection(db, "users"),
     where("role", "==", "student"),
-    // where("teacherId", "==", teacherId)
+     //where("teacherId", "==", teacherId)
     // 🔴 temporarily REMOVE connectionStatus filter
   );
 
@@ -28,3 +28,20 @@ export const getConnectedStudents = async () => {
 
   return students;
 };
+
+// export const getConnectedStudents = async (teacherId: string) => {
+//   if (!teacherId) return [];
+
+//   const q = query(
+//     collection(db, "users"),
+//     where("role", "==", "student"),
+//     where("teacherId", "==", teacherId)
+//   );
+
+//   const snapshot = await getDocs(q);
+
+//   return snapshot.docs.map(doc => ({
+//     id: doc.id,
+//     ...(doc.data() as any),
+//   }));
+// };

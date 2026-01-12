@@ -18,7 +18,8 @@ import LandingPage from "./pages/LandingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import MyClassesPage from "./pages/MyClassesPage";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
-
+import RecommendLecture from "@/pages/teacher/RecommendLecture";
+// import RecommendedLectures from "./pages/student/RecommendedLectures";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -37,6 +38,12 @@ const App = () => (
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+{/* <Route
+  path="/teacher/recommend-lecture"
+  element={<RecommendLecture />}
+/>
+
+<Route path="/student/recommended-lectures" element={<RecommendedLectures />} /> */}
 
                 {/* Class routes */}
                 <Route path="/my-classes" element={<MyClassesPage />} />
