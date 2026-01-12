@@ -20,6 +20,7 @@ import MyClassesPage from "./pages/MyClassesPage";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
 import GroupChatPage from "./pages/GroupChat";
 import RecommendLecture from "@/pages/teacher/RecommendLecture";
+import ZombieGame from "./pages/ZombieGame";
 // import RecommendedLectures from "./pages/student/RecommendedLectures";
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
                   }
                 />
 
+                <Route path="/zombie-game" element={<ProtectedRoute><ZombieGame /></ProtectedRoute>} />
                 <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChatPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
