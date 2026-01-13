@@ -1,11 +1,12 @@
 import { useSchedule } from "@/context/ScheduleContext";
 import ClassCard from "@/components/classes/ClassCard";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function StudentScheduledClasses() {
   const { classes, loading } = useSchedule();
-  const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   if (loading) return <p>Loading...</p>;
   if (!classes.length) return <p>No classes scheduled</p>;
@@ -16,14 +17,31 @@ export default function StudentScheduledClasses() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Classes</h2>
-        <Button variant="ghost" onClick={() => navigate("/my-classes")}>
-          View all →
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => containerRef.current?.scrollBy({ left: -360, behavior: "smooth" })}
+            aria-label="Scroll classes left"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => containerRef.current?.scrollBy({ left: 360, behavior: "smooth" })}
+            aria-label="Scroll classes right"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div ref={containerRef} className="flex gap-4 overflow-x-auto hide-scrollbar py-1">
         {previewClasses.map(cls => (
-          <ClassCard key={cls.id} cls={cls} />
+          <div key={cls.id} className="min-w-[300px] flex-shrink-0">
+            <ClassCard cls={cls} />
+          </div>
         ))}
       </div>
     </div>

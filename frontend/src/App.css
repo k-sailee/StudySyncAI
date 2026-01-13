@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Utility to hide scrollbars while preserving scroll functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
