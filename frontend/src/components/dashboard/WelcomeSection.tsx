@@ -19,8 +19,17 @@ export function WelcomeSection({ userName = "User", role = "student" }: WelcomeS
     year: 'numeric',
     weekday: 'long'
   });
+const [streak, setStreak] = useState(0);
+const [progress, setProgress] = useState(0);
+
 const { user } = useAuth();
 const [stats, setStats] = useState<any>(null);
+const { classes } = useSchedule();
+const today = new Date().toISOString().split("T")[0];
+
+const todayClassesCount = classes?.filter(
+  (cls) => cls.date === today
+).length ?? 0;
 
 useEffect(() => {
   if (!user?.uid) return;
