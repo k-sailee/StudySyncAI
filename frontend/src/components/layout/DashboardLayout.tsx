@@ -12,7 +12,6 @@ import {
   Users,
   Film,
   HelpCircle,
-  Settings,
   Menu,
   X,
   Bell,
@@ -55,7 +54,6 @@ const studentNavItems = [
   { id: "study-groups", label: "Study Groups", icon: Users },
   { id: "doubt-solver", label: "Doubt Solver", icon: HelpCircle },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },
-  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const teacherNavItems = [
@@ -72,7 +70,6 @@ const teacherNavItems = [
 },
   { id: "student-progress", label: "Student Progress", icon: TrendingUp },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },
-  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function DashboardLayout({
