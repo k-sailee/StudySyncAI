@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getDashboardStats } from "@/services/dashboardService";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
+import { useSchedule } from "@/context/ScheduleContext";
 
 interface WelcomeSectionProps {
   userName?: string;
@@ -19,6 +20,7 @@ export function WelcomeSection({ userName = "User", role = "student" }: WelcomeS
   });
 const { user } = useAuth();
 const [stats, setStats] = useState<any>(null);
+const { todayClassesCount } = useSchedule();
 
 useEffect(() => {
   if (!user?.uid) return;
@@ -40,13 +42,13 @@ useEffect(() => {
 const uiStats =
   role === "teacher"
     ? [
-        { label: "Classes Today", value: stats?.classesToday ?? 0 },
+        { label: "Classes Today", value: todayClassesCount },
         { label: "Pending Reviews", value: stats?.pendingReviews ?? 0 },
         { label: "Students Active", value: stats?.studentsActive ?? 0 },
         { label: "Assignments", value: stats?.assignmentsDue ?? 0 },
       ]
     : [
-        { label: "Classes Today", value: stats?.classesToday ?? 0 },
+        { label: "Classes Today", value: todayClassesCount },
         {
           label: "Tasks Pending",
           value: stats?.tasksDue ?? 0,

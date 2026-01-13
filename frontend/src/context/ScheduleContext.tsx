@@ -19,6 +19,7 @@ export interface ScheduledClass {
 
 interface ScheduleContextType {
   classes: ScheduledClass[];
+  todayClassesCount: number;
   addClass: (cls: ScheduledClass) => Promise<void>;
 }
 
@@ -27,6 +28,12 @@ const ScheduleContext = createContext<ScheduleContextType | null>(null);
 export const ScheduleProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [classes, setClasses] = useState<ScheduledClass[]>([]);
+
+const today = new Date().toISOString().split("T")[0];
+
+const todayClassesCount = classes.filter(
+  (cls) => cls.date === today
+).length;
 
   // ✅ LOAD CLASSES FROM BACKEND
   useEffect(() => {
@@ -75,7 +82,14 @@ const addClass = async (cls: ScheduledClass) => {
 
 
   return (
-    <ScheduleContext.Provider value={{ classes, addClass }}>
+    <ScheduleContext.Provider
+  value={{
+    classes,
+    todayClassesCount,
+    addClass,
+  }}
+>
+
       {children}
     </ScheduleContext.Provider>
   );
