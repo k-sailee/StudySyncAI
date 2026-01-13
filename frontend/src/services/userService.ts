@@ -2,8 +2,8 @@ import axios from "axios";
 import { db } from "@/config/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth } from "@/config/firebase";
-// Use same-origin proxy (/api) in dev/preview to avoid CORS; allow override via VITE_API_URL for production
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+// Use same-origin proxy (/api) in dev/preview to avoid CORS; allow override via VITE_API_BASE_URL for production
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Create axios instance
 const api = axios.create({

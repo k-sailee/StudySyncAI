@@ -1,11 +1,11 @@
 import axios from "axios";
 
 // Use same-origin proxy in dev/preview (Vite config proxies /api → backend)
-// For production builds, set VITE_API_URL to your backend base.
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+// For production builds, set VITE_API_BASE_URL to your backend base.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/live-sessions`,
+  baseURL: `${API_BASE_URL}/api/live-sessions`,
   headers: { "Content-Type": "application/json" },
 });
 
