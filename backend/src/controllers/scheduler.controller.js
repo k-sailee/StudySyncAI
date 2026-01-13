@@ -1,5 +1,12 @@
 import { openai } from "../config/openai.js";
 import { db } from "../config/firebase.js";
+import { sendEmail } from "../services/mailer.service.js";
+
+const getStudentEmailByUid = async (uid) => {
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) return null;
+  return userDoc.data().email;
+};
 
 export const generateSchedule = async (req, res) => {
   try {
@@ -240,12 +247,57 @@ for (const studentId of students) {
       createdAt: new Date().toISOString(),
     });
 }
+for (const studentId of students) {
+  await db
+    .collection("notifications")
+    .doc(studentId)
+    .collection("items")
+    .add({
+      title: "New class scheduled",
+      message: `${subject} class on ${date} at ${time}`,
+      classId: classRef.id,
+      teacherEmail,
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
+}
+
+for (const studentUid of students) {
+  const studentEmail = await getStudentEmailByUid(studentUid);
+
+  if (!studentEmail) {
+    console.warn("No email found for student:", studentUid);
+    continue;
+  }
+
+  await sendEmail({
+    to: studentEmail,
+    subject: "📚 New Class Scheduled on LearnHub",
+    text: `
+Hello,
+
+A new class has been scheduled for you.
+
+Subject: ${subject}
+Topics: ${topics}
+Date: ${date}
+Time: ${time}
+
+Please log in to LearnHub to view details.
+
+– LearnHub Team
+    `,
+  });
+}
+
 
     console.log("[BACKEND] Class saved under teacher:", teacherEmail);
 
     res.json({ success: true, id: classRef.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
+
+
   }
 };
 

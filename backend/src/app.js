@@ -13,6 +13,8 @@ import liveSessionsRoutes from "./routes/liveSessions.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import zombieGameRoutes from "./routes/zombieGame.routes.js";
 import mindmapsRoutes from "./routes/mindmaps.js";
+import notificationRoutes from "./routes/notification.routes.js";
+
 const app = express();
 
 app.use(cors());
@@ -32,6 +34,8 @@ app.use("/api/live-sessions", liveSessionsRoutes);
 app.use("/progress", progressRoutes);
 app.use("/api/zombie", zombieGameRoutes);
 app.use("/api/mindmaps", mindmapsRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

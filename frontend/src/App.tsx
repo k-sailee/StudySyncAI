@@ -10,6 +10,7 @@ import { ScheduleProvider } from "@/context/ScheduleContext";
 import ProgressTracker from "./pages/progress/ProgressTracker";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TaskBootstrap from "@/components/TaskBootstrap";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
@@ -34,6 +35,7 @@ const App = () => (
       <AuthProvider>
         <TaskProvider>
           <ScheduleProvider>
+            <NotificationProvider>
             <TaskBootstrap />
 
             <BrowserRouter>
@@ -70,8 +72,9 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-
+            </NotificationProvider>
           </ScheduleProvider>
+          
         </TaskProvider>
       </AuthProvider>
     </TooltipProvider>
