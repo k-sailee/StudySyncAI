@@ -14,7 +14,6 @@ import progressRoutes from "./routes/progress.routes.js";
 import zombieGameRoutes from "./routes/zombieGame.routes.js";
 import mindmapsRoutes from "./routes/mindmaps.js";
 import notificationRoutes from "./routes/notification.routes.js";
-import cors from "cors";
 const app = express();
 
 
