@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { completeFocusSession } from "@/services/progressService";
 import PeaceMode from "./PeaceMode";
-
+import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { db } from "@/config/firebase";
+import { useAuth } from "@/context/AuthContext";
 type TimerMode = "focus" | "break";
 
 export function FocusTimer() {
@@ -17,6 +19,8 @@ export function FocusTimer() {
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+const { user } = useAuth();
+const SESSION_MINUTES = 25; // match your timer duration
 
   const focusTime = 25 * 60;
   const breakTime = 5 * 60;
@@ -77,6 +81,12 @@ const handleFocusComplete = async (minutes: number) => {
   try {
     await completeFocusSession(minutes);
     console.log("Focus session logged:", minutes);
+        // 🔥 THIS LINE DRIVES STUDY STREAK
+    await addDoc(collection(db, "studySessions"), {
+      userId: user.uid,
+      minutes: SESSION_MINUTES, // whatever your timer duration is
+      createdAt: Timestamp.now(),
+    });
   } catch (err) {
     console.error("Failed to log focus session", err);
   }
