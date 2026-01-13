@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
@@ -7,9 +7,23 @@ import NotificationDropdown from "./NotificationDropdown";
 export default function NotificationBell() {
   const { notifications } = useNotifications();
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      const el = containerRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <Button
         variant="ghost"
         size="icon"
