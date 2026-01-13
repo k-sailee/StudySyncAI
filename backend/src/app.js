@@ -17,7 +17,16 @@ import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:8080",
+      "https://study-sync-6f4h8ra1k-sailees-projects-676776c1.vercel.app",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Routes
