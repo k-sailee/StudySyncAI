@@ -1,5 +1,7 @@
 import axios from "axios";
-
+import { db } from "@/config/firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { auth } from "@/config/firebase";
 // Use same-origin proxy (/api) in dev/preview to avoid CORS; allow override via VITE_API_URL for production
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -10,6 +12,19 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+export type ProfessionalDetails = {
+  class?: string;
+  dob?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  preferredLanguage?: string;
+  board?: string;
+  stream?: string;
+  school?: string;
+  section?: string;
+  academicYear?: string;
+};
 
 export interface UserSearchResult {
   uid: string;
@@ -190,3 +205,37 @@ export const deleteConnection = async (
     };
   }
 };
+
+export async function getUserProfilePage() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return null;
+
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+
+  return snap.exists() ? snap.data() : null;
+}
+
+export const updateAcademicDetails = async (data: {
+  grade?: string;
+  stream?: string;
+  courses?: number;
+}) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const ref = doc(db, "users", uid);
+  await updateDoc(ref, data);
+};
+
+export async function updateProfessionalDetails(data: ProfessionalDetails) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("User not authenticated");
+
+  const ref = doc(db, "users", uid);
+
+  await updateDoc(ref, {
+    ...data,
+    updatedAt: new Date(),
+  });
+}

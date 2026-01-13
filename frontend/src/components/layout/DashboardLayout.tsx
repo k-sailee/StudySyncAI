@@ -48,7 +48,7 @@ const studentNavItems = [
   icon: PlayCircle,
 }
 ,
-  { id: "tasks", label: "My Tasks", icon: CheckSquare, badge: "3" },
+  { id: "tasks", label: "My Tasks", icon: CheckSquare},
   { id: "progress", label: "Progress Tracker", icon: TrendingUp },
   { id: "study-groups", label: "Study Groups", icon: Users },
   { id: "doubt-solver", label: "Doubt Solver", icon: HelpCircle },
@@ -60,7 +60,8 @@ const teacherNavItems = [
   { id: "teacher-dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "connections", label: "My Students", icon: UserPlus },
   { id: "my-classes", label: "My Classes", icon: BookOpen },
-  { id: "live-sessions", label: "Live Sessions", icon: Video, badge: "2" },
+  { id: "live-sessions", label: "Live Sessions", icon: Video },
+  //  badge:2
   { id: "assignments", label: "Assignments", icon: ClipboardList },
   {
   id: "recommend-lecture",
@@ -191,7 +192,7 @@ export function DashboardLayout({
                   >
                     <Icon className="w-5 h-5" />
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && <Badge>{item.badge}</Badge>}
+                    
                     {isActive && <ChevronRight className="w-4 h-4" />}
                   </button>
                 </li>

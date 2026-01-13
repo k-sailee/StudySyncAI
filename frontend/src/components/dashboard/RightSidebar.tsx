@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Calendar, CheckCircle, Clock, AlertCircle, ChevronLeft, ChevronRight, User } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { normalizeDate } from "@/utils/date";
 import { Task } from "@/types/task";
+import { useEffect, useState } from "react";
+import { getUserProfilePage } from "@/services/userService";
 
 // const upcomingTasks = [
 //   {
@@ -42,6 +43,7 @@ import { Task } from "@/types/task";
 
 export function RightSidebar() {
    const { user } = useAuth();
+const [profile, setProfile] = useState<any>(null);
 
 
   const navigate = useNavigate();
@@ -61,7 +63,15 @@ const upcomingTasks = tasks
       .join("")
       .toUpperCase() || "U";
   const [currentMonth, setCurrentMonth] = useState(new Date());
- 
+ useEffect(() => {
+  const loadProfile = async () => {
+    const data = await getUserProfilePage();
+    setProfile(data);
+  };
+
+  loadProfile();
+}, []);
+
 
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
@@ -147,9 +157,14 @@ const tasksByDate = tasks.reduce((acc, task) => {
   {userName}
 </h3>
 
-          <Badge variant="secondary" className="mt-2">
-            Grade 11 - Science
-          </Badge>
+         {profile?.grade && profile?.stream ? (
+  <Badge className="bg-pink-100 text-pink-700">
+    Class {profile.class} – {profile.stream}
+  </Badge>
+) : (
+  <Badge variant="outline">Profile incomplete</Badge>
+)}
+
       <Button
   className="w-full"
   onClick={() => navigate("/profile")}

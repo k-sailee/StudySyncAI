@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import { Play, Calendar, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getDashboardStats } from "@/services/dashboardService";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
 
 interface WelcomeSectionProps {
   userName?: string;
@@ -14,22 +17,53 @@ export function WelcomeSection({ userName = "User", role = "student" }: WelcomeS
     year: 'numeric',
     weekday: 'long'
   });
+const { user } = useAuth();
+const [stats, setStats] = useState<any>(null);
 
-  const studentStats = [
-    { label: "Classes Today", value: "4", change: "+1" },
-    { label: "Tasks Due", value: "3", change: "urgent" },
-    { label: "Study Streak", value: "12 days", change: "🔥" },
-    { label: "Progress", value: "78%", change: "+5%" },
-  ];
+useEffect(() => {
+  if (!user?.uid) return;
 
-  const teacherStats = [
-    { label: "Classes Today", value: "5", change: "+2" },
-    { label: "Pending Reviews", value: "12", change: "new" },
-    { label: "Students Active", value: "156", change: "+8" },
-    { label: "Assignments", value: "24", change: "due" },
-  ];
+  getDashboardStats(user.uid).then((res) => {
+    console.log("Dashboard stats:", res);
+    setStats(res);
+  });
+}, [user?.uid]);
 
-  const stats = role === "teacher" ? teacherStats : studentStats;
+
+ 
+  //   { label: "Classes Today", value: "5", change: "+2" },
+  //   { label: "Pending Reviews", value: "12", change: "new" },
+  //   { label: "Students Active", value: "156", change: "+8" },
+  //   { label: "Assignments", value: "24", change: "due" },
+  // ];
+
+const uiStats =
+  role === "teacher"
+    ? [
+        { label: "Classes Today", value: stats?.classesToday ?? 0 },
+        { label: "Pending Reviews", value: stats?.pendingReviews ?? 0 },
+        { label: "Students Active", value: stats?.studentsActive ?? 0 },
+        { label: "Assignments", value: stats?.assignmentsDue ?? 0 },
+      ]
+    : [
+        { label: "Classes Today", value: stats?.classesToday ?? 0 },
+        {
+          label: "Tasks Pending",
+          value: stats?.tasksDue ?? 0,
+          change:
+            stats?.urgentTasks > 0 ? `${stats.urgentTasks} urgent` : undefined,
+        },
+        {
+          label: "Study Streak",
+          value: `${stats?.studyStreak ?? 0} ${
+            stats?.studyStreak === 1 ? "day" : "days"
+          }`,
+          change: stats?.studyStreak > 0 ? "🔥" : undefined,
+        },
+        { label: "Progress", value: `${stats?.progressPercent ?? 0}%` },
+      ];
+
+
 
   return (
     <motion.div
@@ -85,24 +119,31 @@ export function WelcomeSection({ userName = "User", role = "student" }: WelcomeS
         </div>
 
         {/* Stats Row */}
-        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10"
-            >
-              <p className="text-white/70 text-xs sm:text-sm">{stat.label}</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl sm:text-2xl font-bold text-white">{stat.value}</span>
-                <span className="text-xs text-white/60">{stat.change}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+      <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+  {uiStats.map((stat, index) => (
+    <motion.div
+      key={stat.label}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 * index }}
+      className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10"
+    >
+      <p className="text-white/70 text-xs sm:text-sm">{stat.label}</p>
+
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="text-xl sm:text-2xl font-bold text-white">
+          {stat.value}
+        </span>
+        {stat.change && (
+          <span className="text-xs text-white/60">{stat.change}</span>
+        )}
+      </div>
+    </motion.div>
+  ))}
+</div>
+
       </div>
     </motion.div>
   );
 }
+
