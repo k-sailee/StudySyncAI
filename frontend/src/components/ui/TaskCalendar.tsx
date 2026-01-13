@@ -5,7 +5,13 @@ import { useMemo } from "react";
 
 import { useTasks } from "@/context/TaskContext";
 import { CalendarTask } from "@/types/calendar-task";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -18,24 +24,68 @@ function toDateKey(date: Date) {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+function getDateKeyFromTask(task: any): string | null {
+  // Assignment (Firestore Timestamp)
+  if (task.dueDate?.toDate) {
+    return toDateKey(task.dueDate.toDate());
+  }
 
-export function Calendar({
+  // Normal task (string / Date)
+  if (task.deadline) {
+    return toDateKey(new Date(task.deadline));
+  }
+
+  return null;
+}
+
+
+export function TaskCalendar({
   className,
   classNames,
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+
+
   const { tasks } = useTasks();
 
+
   /** 🔁 Convert full Task → CalendarTask */
-  const calendarTasks: CalendarTask[] = useMemo(() => {
-    return tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      dueDate: t.deadline, // 🔥 IMPORTANT
-      isAssignment: t.isAssignment,
-    }));
-  }, [tasks]);
+//  const calendarTasks: CalendarTask[] = useMemo(() => {
+//   return tasks
+//     .map((t) => {
+//       const dateKey = getDateKeyFromTask(t);
+//       if (!dateKey) return null;
+
+//       return {
+//         id: t.id,
+//         title: t.title,
+//         dueDate: dateKey, // ✅ ALWAYS yyyy-mm-dd
+//         isAssignment: t.isAssignment,
+//       };
+//     })
+//     .filter(Boolean) as CalendarTask[];
+// }, [tasks]);
+const calendarTasks: CalendarTask[] = useMemo(() => {
+  return tasks
+    .map((t) => {
+      if (!t.deadline) return null;
+
+      const date = new Date(t.deadline);
+      if (isNaN(date.getTime())) return null;
+
+      return {
+        id: t.id,
+        title: t.title,
+        dueDate: toDateKey(date), // yyyy-mm-dd
+        isAssignment: Boolean(t.isAssignment),
+      };
+    })
+    .filter(Boolean) as CalendarTask[];
+}, [tasks]);
+
+
+
 
   /** 📅 Group tasks by date */
   const tasksByDate = useMemo(() => {
@@ -47,7 +97,8 @@ export function Calendar({
     return map;
   }, [calendarTasks]);
 
-  return (
+ return (
+  <TooltipProvider delayDuration={200}>
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
@@ -60,7 +111,7 @@ export function Calendar({
       components={{
         DayContent: ({ date }) => {
           const dateKey = toDateKey(date);
-          const dayTasks = tasksByDate[dateKey];
+          const dayTasks = tasksByDate[dateKey] || [];
 
           return (
             <Tooltip>
@@ -71,26 +122,44 @@ export function Calendar({
                 >
                   <span>{date.getDate()}</span>
 
-                  {dayTasks?.map((t, i) => (
-                    <span
-                      key={t.id}
-                      className={cn(
-                        "absolute bottom-1 h-1.5 w-1.5 rounded-full",
-                        t.isAssignment ? "bg-purple-500" : "bg-blue-500"
-                      )}
-                      style={{ left: `${45 + i * 6}%` }}
-                    />
-                  ))}
+                  <div className="absolute bottom-1 flex gap-0.5">
+                    {dayTasks.slice(0, 3).map((t) => (
+                      <span
+                        key={t.id}
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          t.isAssignment
+                            ? "bg-purple-500"
+                            : "bg-blue-500"
+                        )}
+                      />
+                    ))}
+                  </div>
                 </button>
               </TooltipTrigger>
 
-              {dayTasks && (
+              {dayTasks.length > 0 && (
                 <TooltipContent side="right" className="max-w-xs">
-                  {dayTasks.map((t) => (
-                    <div key={t.id} className="text-xs">
-                      {t.isAssignment ? "📘 Assignment" : "📝 Task"} — {t.title}
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    {dayTasks.slice(0, 3).map((t) => (
+                      <div
+                        key={t.id}
+                        className="text-xs flex items-center gap-1"
+                      >
+                        <span>{t.isAssignment ? "📘" : "📝"}</span>
+                        <span className="font-medium">
+                          {t.isAssignment ? "Assignment" : "Task"}:
+                        </span>
+                        <span className="truncate">{t.title}</span>
+                      </div>
+                    ))}
+
+                    {dayTasks.length > 3 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{dayTasks.length - 3} more
+                      </div>
+                    )}
+                  </div>
                 </TooltipContent>
               )}
             </Tooltip>
@@ -128,7 +197,9 @@ export function Calendar({
       }}
       {...props}
     />
-  );
-}
+  </TooltipProvider>
+);
 
-Calendar.displayName = "Calendar";
+}
+TaskCalendar.displayName = "TaskCalendar";
+

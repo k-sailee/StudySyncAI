@@ -92,7 +92,7 @@ interface CreateAssignmentsParams {
     title: string;
     description: string;
     subject: string;
-    dueDate: string;
+    dueDate: Timestamp;
     totalMarks: number;
   };
   studentIds: string[];
@@ -116,6 +116,10 @@ export const createAssignmentsForStudents = async ({
 
   await Promise.all(promises);
 };
+
+
+
+
 
 export const getStudentAssignments = async (
   studentId: string

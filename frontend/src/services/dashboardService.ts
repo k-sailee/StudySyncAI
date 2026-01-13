@@ -4,6 +4,7 @@ import {
   getDocs,
   query,
   where,
+  Timestamp
 } from "firebase/firestore";
 
 export async function getDashboardStats(userId: string) {

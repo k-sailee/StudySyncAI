@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { useSchedule } from "@/context/ScheduleContext";
 
+import { getProgress, getStudyStreak } from "@/services/dashboardStats";
 interface WelcomeSectionProps {
   userName?: string;
   role?: "student" | "teacher";
@@ -20,18 +21,31 @@ export function WelcomeSection({ userName = "User", role = "student" }: WelcomeS
   });
 const { user } = useAuth();
 const [stats, setStats] = useState<any>(null);
-const { todayClassesCount } = useSchedule();
 
 useEffect(() => {
   if (!user?.uid) return;
 
   getDashboardStats(user.uid).then((res) => {
-    console.log("Dashboard stats:", res);
+    
     setStats(res);
   });
 }, [user?.uid]);
 
+useEffect(() => {
+    if (!user?.uid) return;
 
+    async function loadStats() {
+      const [streakData, progressData] = await Promise.all([
+        getStudyStreak(user.uid),
+        getProgress(user.uid),
+      ]);
+
+      setStreak(streakData);
+      setProgress(progressData);
+    }
+
+    loadStats();
+  }, [user?.uid]);
  
   //   { label: "Classes Today", value: "5", change: "+2" },
   //   { label: "Pending Reviews", value: "12", change: "new" },
@@ -57,14 +71,14 @@ const uiStats =
         },
         {
           label: "Study Streak",
-          value: `${stats?.studyStreak ?? 0} ${
-            stats?.studyStreak === 1 ? "day" : "days"
-          }`,
-          change: stats?.studyStreak > 0 ? "🔥" : undefined,
+          value: `${streak} ${streak === 1 ? "day" : "days"}`,
+          change: streak > 0 ? "🔥" : undefined,
         },
-        { label: "Progress", value: `${stats?.progressPercent ?? 0}%` },
+        {
+          label: "Progress",
+          value: `${progress}%`,
+        },
       ];
-
 
 
   return (
@@ -149,3 +163,11 @@ const uiStats =
   );
 }
 
+function StatCard({ title, value }: { title: string; value: any }) {
+  return (
+    <div className="rounded-xl bg-white/20 p-4 backdrop-blur">
+      <p className="text-sm opacity-80">{title}</p>
+      <h3 className="text-2xl font-bold">{value}</h3>
+    </div>
+  );
+}
