@@ -146,7 +146,26 @@ const openEditModal = (task: Task) => {
 
   return deadline;
 };
+function formatDeadline(deadline: any): string {
+  if (!deadline) return "—";
 
+  // Firestore Timestamp
+  if (deadline instanceof Timestamp) {
+    return deadline.toDate().toLocaleDateString();
+  }
+
+  // JS Date
+  if (deadline instanceof Date) {
+    return deadline.toLocaleDateString();
+  }
+
+  // ISO string (yyyy-mm-dd)
+  if (typeof deadline === "string") {
+    return new Date(deadline).toLocaleDateString();
+  }
+
+  return "—";
+}
 
   const [schedulerData, setSchedulerData] = useState({
     dailySchedule: [{ time: "09:00 AM", name: "Morning Meeting", duration: "60" }],
@@ -830,7 +849,7 @@ const openEditModal = (task: Task) => {
                                   </Badge>
                                  <span className="flex items-center gap-1 text-muted-foreground">
   <Calendar className="w-4 h-4" />
-  {renderDeadline(task.deadline)}
+  {formatDeadline(task.deadline)}
 </span>
 
                                 </div>
@@ -1894,7 +1913,8 @@ const openEditModal = (task: Task) => {
 
                        <span className="flex items-center gap-1 text-muted-foreground">
   <Calendar className="w-4 h-4" />
-  {renderDeadline(task.deadline)}
+  {formatDeadline(task.deadline)}
+
 </span>
 
 
