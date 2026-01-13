@@ -11,9 +11,9 @@ export default function TeacherScheduledClasses() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">My Classes</h2>
-      </div>
+      </div> */}
 
       {/* 🔥 SCROLLABLE CLASSES CONTAINER */}
       <div className="max-h-[520px] overflow-y-auto pr-2">
