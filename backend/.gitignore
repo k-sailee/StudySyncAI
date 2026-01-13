@@ -5,3 +5,4 @@ serviceAccountKey.json
 .env.local
 .env.development
 .env.production
+*.json
