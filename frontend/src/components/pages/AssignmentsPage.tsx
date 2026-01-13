@@ -4,6 +4,8 @@ import { db } from "@/config/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
+
 const AssignmentsPage = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,8 @@ const filteredAssignments = assignments.filter((a) => {
 
           <span className="flex items-center gap-1 text-muted-foreground">
             <Calendar className="w-4 h-4" />
-            {assignment.dueDate}
+            {formatDate(assignment.dueDate)}
+
           </span>
         </div>
       </div>
