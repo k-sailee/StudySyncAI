@@ -1,14 +1,9 @@
 import { Calendar, Clock, Users, Book } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export default function ClassCard({ cls }: { cls: any }) {
-  const navigate = useNavigate();
 
   return (
-    <div
-      onClick={() => navigate(`/classes/${cls.id}`)}
-      className="cursor-pointer rounded-xl bg-card backdrop-blur-md overflow-hidden p-0 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
-    >
+    <div className="rounded-xl bg-card backdrop-blur-md overflow-hidden p-0 shadow-sm transition-all duration-300">
       {/* Top gradient header with icon */}
       <div className={`h-16 bg-gradient-to-br from-violet-500 to-indigo-500 p-3 flex items-start`}> 
         <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
