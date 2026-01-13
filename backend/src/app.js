@@ -20,7 +20,8 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",                 // local dev
-    "https://study-sync-ai-nine.vercel.app"   // vercel frontend
+    "https://study-sync-ai-nine.vercel.app",   // vercel frontend
+    "https://study-sync-ai-git-main-sailees-projects-676776c1.vercel.app"  // current vercel deployment
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
