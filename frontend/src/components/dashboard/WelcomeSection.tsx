@@ -132,14 +132,7 @@ const uiStats =
               <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
               {role === "teacher" ? "Start Class" : "Start Learning"}
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="border-2 border-white text-white hover:bg-white/20 backdrop-blur-sm bg-white/10"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {role === "teacher" ? "AI Insights" : "AI Study Plan"}
-            </Button>
+            
           </div>
         </div>
 
