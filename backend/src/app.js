@@ -14,22 +14,20 @@ import progressRoutes from "./routes/progress.routes.js";
 import zombieGameRoutes from "./routes/zombieGame.routes.js";
 import mindmapsRoutes from "./routes/mindmaps.js";
 import notificationRoutes from "./routes/notification.routes.js";
-
+import cors from "cors";
 const app = express();
 
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:8080",
-      "https://study-sync-dkd4ivyud-sailees-projects-676776c1.vercel.app",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:5173",                 // local dev
+    "https://study-sync-ai-nine.vercel.app"   // vercel frontend
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
-app.options("*", cors());
 
 app.use(express.json());
 
