@@ -25,7 +25,7 @@ useEffect(() => {
   if (!user?.uid) return;
 
   getDashboardStats(user.uid).then((res) => {
-    console.log("Dashboard stats:", res);
+    
     setStats(res);
   });
 }, [user?.uid]);

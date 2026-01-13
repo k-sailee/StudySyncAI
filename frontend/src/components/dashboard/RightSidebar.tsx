@@ -13,6 +13,7 @@ import { normalizeDate } from "@/utils/date";
 import { Task } from "@/types/task";
 import { useEffect, useState } from "react";
 import { getUserProfilePage } from "@/services/userService";
+import { TaskCalendar } from "@/components/ui/TaskCalendar";
 
 // const upcomingTasks = [
 //   {
@@ -45,15 +46,29 @@ export function RightSidebar() {
    const { user } = useAuth();
 const [profile, setProfile] = useState<any>(null);
 
+const getTaskDate = (task: any): Date | null => {
+  if (task.dueDate?.toDate) {
+    return task.dueDate.toDate(); // Firestore Timestamp
+  }
 
+  if (task.deadline) {
+    return new Date(task.deadline); // string/date
+  }
+
+  return null;
+};
   const navigate = useNavigate();
 const { tasks } = useTasks();
 const upcomingTasks = tasks
   .filter((t) => t.status !== "completed")
-  .sort(
-    (a, b) =>
-      new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-  )
+  .sort((a, b) => {
+  const aDate = getTaskDate(a);
+  const bDate = getTaskDate(b);
+
+  if (!aDate || !bDate) return 0;
+  return aDate.getTime() - bDate.getTime();
+})
+
   .slice(0, 3);
   const userName = user?.displayName || "User";
   const userInitials =
@@ -115,30 +130,23 @@ const upcomingTasks = tasks
 
 const today = new Date().getDate();
 
+
 const isCurrentMonth =
   currentMonth.getMonth() === new Date().getMonth() &&
   currentMonth.getFullYear() === new Date().getFullYear();
-
-// const tasksByDate = tasks.reduce((acc: Record<string, any[]>, task) => {
-//   if (!task.deadline) return acc;
-
-//   const dateKey = task.deadline; // yyyy-mm-dd
-//   if (!acc[dateKey]) acc[dateKey] = [];
-//   acc[dateKey].push(task);
-
-//   return acc;
-// }, {});
 const tasksByDate = tasks.reduce((acc, task) => {
-  const dateKey = normalizeDate(task.deadline);
+  const taskDate = getTaskDate(task);
+  const dateKey = taskDate ? normalizeDate(taskDate) : null;
+
   if (!dateKey) return acc;
 
   if (!acc[dateKey]) acc[dateKey] = [];
   acc[dateKey].push(task);
 
   return acc;
-}, {});
+}, {} as Record<string, any[]>);
   return (
-    <div className="hidden xl:block w-80 shrink-0 space-y-6">
+    <div className="hidden lg:block w-80 shrink-0 space-y-6">
       {/* Profile Card */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
@@ -176,109 +184,23 @@ const tasksByDate = tasks.reduce((acc, task) => {
       </motion.div>
 
       {/* Calendar Widget */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-card rounded-2xl border border-border shadow-card p-4"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" />
-            Calendar
-          </h3>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="w-7 h-7"
-              onClick={() => navigateMonth(-1)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="w-7 h-7"
-              onClick={() => navigateMonth(1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        <p className="text-sm text-center font-medium mb-3">{monthName}</p>
-<TooltipProvider delayDuration={200}>
-  <div className="grid grid-cols-7 gap-1 text-center text-xs">
-    {['Su','Mo','Tu','We','Th','Fr','Sa'].map((day) => (
-      <div key={day} className="p-2 text-muted-foreground font-medium">
-        {day}
-      </div>
-    ))}
-
-    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-      <div key={`empty-${i}`} className="p-2" />
-    ))}
-
-    {Array.from({ length: daysInMonth }).map((_, i) => {
-      const day = i + 1;
-      const isToday = isCurrentMonth && day === today;
-
-      const dateKey = `${currentMonth.getFullYear()}-${String(
-        currentMonth.getMonth() + 1
-      ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-      const dayTasks = tasksByDate[dateKey] || [];
-      const hasTask = dayTasks.length > 0;
-
-      return (
-        <Tooltip key={day}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "p-2 rounded-lg text-sm transition-all relative",
-                isToday
-                  ? "bg-primary text-primary-foreground font-bold"
-                  : "hover:bg-accent",
-                hasTask && !isToday && "font-semibold text-primary"
-              )}
-            >
-              {day}
-
-              {hasTask && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
-              )}
-            </button>
-          </TooltipTrigger>
-
-          {hasTask && (
-            <TooltipContent side="right" className="max-w-xs">
-              <div className="space-y-1">
-                {dayTasks.slice(0, 3).map((task) => (
-                  <div key={task.id} className="text-xs">
-                    <span className="font-medium">
-                      {task.isAssignment ? "📘 Assignment" : "📝 Task"}
-                    </span>
-                    : {task.title}
-                  </div>
-                ))}
-
-                {dayTasks.length > 3 && (
-                  <div className="text-xs text-muted-foreground">
-                    +{dayTasks.length - 3} more
-                  </div>
-                )}
-              </div>
-            </TooltipContent>
-          )}
-        </Tooltip>
-      );
-    })}
+     {/* Calendar Widget */}
+<motion.div
+  initial={{ opacity: 0, x: 20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: 0.1 }}
+  className="bg-card rounded-2xl border border-border shadow-card p-4"
+>
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="font-semibold flex items-center gap-2">
+      <Calendar className="w-4 h-4 text-primary" />
+      Calendar
+    </h3>
   </div>
-</TooltipProvider>
 
-      </motion.div>
+  <TaskCalendar showOutsideDays className="w-full" />
+</motion.div>
+
 
       {/* Upcoming Tasks */}
       <motion.div
@@ -308,7 +230,7 @@ const tasksByDate = tasks.reduce((acc, task) => {
                   : "bg-accent/50 border-border hover:bg-accent"
               )}
             >
-              <div className="flex items-start gap-3">
+              {/* <div className="flex items-start gap-3">
                 <div className={cn(
                   "w-2 h-2 rounded-full mt-2 shrink-0",
                   task.priority === "high" ? "bg-destructive" :
@@ -323,12 +245,78 @@ const tasksByDate = tasks.reduce((acc, task) => {
                     ) : (
                       <Clock className="w-3 h-3" />
                     )}
-                    {/* <span className={task.priority === "high" ? "text-destructive font-medium" : ""}>
-                      {task.deadline}
-                    </span> */}
+                    <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+  <Clock className="w-3 h-3" />
+  {(() => {
+    const date = getTaskDate(task);
+    if (!date) return null;
+
+    return (
+      <span>
+        {date.toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </span>
+    );
+  })()}
+</div>
+
                   </div>
                 </div>
-              </div>
+              </div> */}
+              <div className="flex items-start gap-3">
+  {/* Priority dot */}
+  <div
+    className={cn(
+      "w-2 h-2 rounded-full mt-2 shrink-0",
+      task.priority === "high"
+        ? "bg-destructive"
+        : task.priority === "medium"
+        ? "bg-warning"
+        : "bg-muted-foreground"
+    )}
+  />
+
+  {/* Content */}
+  <div className="flex-1 min-w-0">
+    {/* Title */}
+    <h4 className="font-medium text-sm truncate">
+      {task.title}
+    </h4>
+
+    {/* Subject */}
+    <p className="text-xs text-muted-foreground truncate">
+      {task.subject}
+    </p>
+
+    {/* Date */}
+    <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+      {task.priority === "high" ? (
+        <AlertCircle className="w-3 h-3 text-destructive" />
+      ) : (
+        <Clock className="w-3 h-3" />
+      )}
+
+      {(() => {
+        const date = getTaskDate(task);
+        if (!date) return null;
+
+        return (
+          <span>
+            {date.toLocaleDateString("en-US", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        );
+      })()}
+    </div>
+  </div>
+</div>
+
             </motion.div>
           ))}
         </div>

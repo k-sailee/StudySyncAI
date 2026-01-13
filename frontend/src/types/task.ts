@@ -1,27 +1,27 @@
-import { Timestamp } from "firebase/firestore";
-
-export type TaskPriority = "high" | "medium" | "low";
 export type TaskStatus = "pending" | "in-progress" | "completed";
+export type TaskPriority = "high" | "medium" | "low";
 
 export interface Task {
   id: string;
+
   title: string;
-  subject: string;
-  description: string;
-  deadline: string; // yyyy-mm-dd
+  description?: string;
+  subject?: string;
+
+  // 🔥 allow both (Firestore + UI safe)
+  deadline: string | Date;
 
   priority: TaskPriority;
   status: TaskStatus;
-  progress: number;
 
-  createdAt: Timestamp | null;
+  progress?: number;
 
+  // 🔥 Scheduler (optional)
+  duration?: number;
   scheduledTime?: string;
   endTime?: string;
-  duration?: number;
-  category?: string;
-  isScheduled?: boolean;
 
+  // 🔥 Flags
   isAssignment?: boolean;
-  fileUrl?: string;
+  isScheduled?: boolean;
 }

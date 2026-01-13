@@ -15,6 +15,8 @@ import {
   ChevronDown,
   RefreshCw,
 } from "lucide-react";
+import { TaskTypeBadge } from "@/components/common/TaskTypeBadge";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -107,18 +109,44 @@ export function TasksPage() {
     deadline: "",
     priority: "medium" as "high" | "medium" | "low",
   });
+const openEditModal = (task: Task) => {
+  setEditingTask(task);
 
-  const openEditModal = (task: Task) => {
-    setEditingTask(task);
-    setEditForm({
-      title: task.title,
-      description: task.description,
-      subject: task.subject,
-      deadline: task.deadline,
-      priority: task.priority,
-    });
-    setIsEditDialogOpen(true);
-  };
+  setEditForm({
+    title: task.title,
+    description: task.description || "",
+    subject: task.subject || "",
+    deadline:
+      task.deadline instanceof Date
+        ? task.deadline.toISOString().split("T")[0]
+        : task.deadline || "",
+    priority: task.priority,
+  });
+
+  setIsEditDialogOpen(true);
+};
+
+  // const openEditModal = (task: Task) => {
+  //   setEditingTask(task);
+  //   setEditForm({
+  //     title: task.title,
+  //     description: task.description,
+  //     subject: task.subject,
+  //     deadline: task.deadline,
+  //     priority: task.priority,
+  //   });
+  //   setIsEditDialogOpen(true);
+  // };
+  const renderDeadline = (deadline: string | Date) => {
+  if (!deadline) return "—";
+
+  if (deadline instanceof Date) {
+    return deadline.toLocaleDateString();
+  }
+
+  return deadline;
+};
+
 
   const [schedulerData, setSchedulerData] = useState({
     dailySchedule: [{ time: "09:00 AM", name: "Morning Meeting", duration: "60" }],
@@ -259,7 +287,9 @@ export function TasksPage() {
     if (task.isAssignment) return;
 
     try {
-      const newStatus = task.status === "completed" ? "pending" : "completed";
+      const newStatus: Task["status"] =
+  task.status === "completed" ? "pending" : "completed";
+
 
       await updateDoc(doc(db, "tasks", task.id), {
         status: newStatus,
@@ -318,7 +348,6 @@ export function TasksPage() {
       });
     }
   };
-
   const handleAISchedule = async () => {
     if (!user) {
       toast({
@@ -799,7 +828,11 @@ export function TasksPage() {
                                   >
                                     {task.priority}
                                   </Badge>
-                                  <span>Deadline: {task.deadline}</span>
+                                 <span className="flex items-center gap-1 text-muted-foreground">
+  <Calendar className="w-4 h-4" />
+  {renderDeadline(task.deadline)}
+</span>
+
                                 </div>
                               </div>
                             ))}
@@ -1293,17 +1326,19 @@ export function TasksPage() {
                             });
                           }
 
-                          if (editingTask.isAssignment) {
-                            await updateDoc(
-                              doc(db, "assignments", editingTask.id),
-                              {
-                                title: editForm.title,
-                                description: editForm.description,
-                                subject: editForm.subject,
-                                dueDate: editForm.deadline,
-                              },
-                            );
-                          }
+                       if (editingTask.isAssignment) {
+  await updateDoc(
+    doc(db, "assignments", editingTask.id),
+    {
+      title: editForm.title,
+      description: editForm.description,
+      subject: editForm.subject,
+      dueDate: Timestamp.fromDate(
+        new Date(editForm.deadline)
+      ),
+    },
+  );
+}
 
                           toast({
                             title: "Updated",
@@ -1821,21 +1856,26 @@ export function TasksPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3
-                          className={cn(
-                            "font-semibold",
-                            task.status === "completed" && "line-through",
-                          )}
-                        >
-                          {task.title}
-                        </h3>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(task.status)}
-                        >
-                          {task.status.replace("-", " ")}
-                        </Badge>
-                      </div>
+  <h3
+    className={cn(
+      "font-semibold",
+      task.status === "completed" && "line-through",
+    )}
+  >
+    {task.title}
+  </h3>
+
+  {/* 🔥 Task / Assignment badge */}
+  <TaskTypeBadge isAssignment={!!task.isAssignment} />
+
+  {/* Status badge */}
+  <Badge
+    variant="outline"
+    className={getStatusColor(task.status)}
+  >
+    {task.status.replace("-", " ")}
+  </Badge>
+</div>
 
                       <p className="text-sm text-muted-foreground line-clamp-1 mb-3">
                         {task.description}
@@ -1844,17 +1884,19 @@ export function TasksPage() {
                       <div className="flex flex-wrap items-center gap-4 text-sm">
                         <Badge variant="secondary">{task.subject}</Badge>
 
-                        {task.isScheduled && task.scheduledTime && (
-                          <Badge className="bg-primary/10 text-primary border-primary/20">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {task.scheduledTime} - {task.endTime}
-                          </Badge>
-                        )}
+                        {task.scheduledTime && task.endTime && (
+  <Badge className="bg-primary/10 text-primary border-primary/20">
+    <Clock className="w-3 h-3 mr-1" />
+    {task.scheduledTime} - {task.endTime}
+  </Badge>
+)}
 
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          {task.deadline}
-                        </span>
+
+                       <span className="flex items-center gap-1 text-muted-foreground">
+  <Calendar className="w-4 h-4" />
+  {renderDeadline(task.deadline)}
+</span>
+
 
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <Flag
@@ -1869,7 +1911,12 @@ export function TasksPage() {
 
                         {task.duration && (
                           <span className="text-muted-foreground">
-                            {task.duration} min
+                            {task.duration && (
+  <Badge variant="outline" className="font-mono">
+    {task.duration} min
+  </Badge>
+)}
+
                           </span>
                         )}
                       </div>
