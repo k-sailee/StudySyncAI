@@ -7,7 +7,11 @@ import { getInitials } from "@/lib/getInitials";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-export default function ProfileDropdown() {
+export default function ProfileDropdown({
+  onLogout,
+}: {
+  onLogout?: () => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -74,7 +78,11 @@ export default function ProfileDropdown() {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start gap-2 text-destructive"
-                onClick={logout}
+                onClick={async () => {
+                  setOpen(false);
+                  if (onLogout) await onLogout();
+                  else await logout();
+                }}
               >
                 <LogOut className="w-4 h-4" />
                 Logout

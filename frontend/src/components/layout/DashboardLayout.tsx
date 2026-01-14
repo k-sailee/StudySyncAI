@@ -36,6 +36,7 @@ interface DashboardLayoutProps {
   userRole?: "student" | "teacher";
   onRoleChange?: (role: "student" | "teacher") => void;
   showRoleSwitcher?: boolean;
+  onLogout?: () => Promise<void>;
 }
 
 const studentNavItems = [
@@ -68,7 +69,6 @@ const teacherNavItems = [
   label: "Recommended Lectures",
   icon: PlayCircle,
 },
-  { id: "student-progress", label: "Student Progress", icon: TrendingUp },
   { id: "contact-support", label: "Contact Support", icon: HelpCircle },
 ];
 
@@ -79,6 +79,7 @@ export function DashboardLayout({
   userRole = "student",
   onRoleChange,
   showRoleSwitcher = false,
+  onLogout,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
@@ -224,7 +225,7 @@ export function DashboardLayout({
 
 
             {/* ✅ PROFESSIONAL PROFILE DROPDOWN */}
-            <ProfileDropdown />
+            <ProfileDropdown onLogout={onLogout} />
           </div>
         </header>
 

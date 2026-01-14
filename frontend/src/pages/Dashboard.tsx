@@ -72,7 +72,6 @@ const userName = user?.displayName || "User";
         case "my-classes":
         case "live-sessions":
         case "assignments":
-        case "student-progress":
         case "doubt-history":
           return <TeacherDashboardPage />;
         default:
