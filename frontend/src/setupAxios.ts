@@ -14,3 +14,33 @@ const normalizeApiBase = (raw) => {
 axios.defaults.baseURL = normalizeApiBase(rawApiBase);
 
 axios.defaults.withCredentials = true;
+
+// Request/response logging for debugging (will only log in dev by default)
+axios.interceptors.request.use((config) => {
+	try {
+		const method = (config.method || "GET").toUpperCase();
+		const url = (config.baseURL || "") + (config.url || "");
+		console.debug(`[API REQUEST] ${method} ${url}`);
+	} catch (e) {}
+	return config;
+});
+
+axios.interceptors.response.use(
+	(res) => {
+		try {
+			const method = (res.config.method || "GET").toUpperCase();
+			const url = (res.config.baseURL || "") + (res.config.url || "");
+			console.debug(`[API RESPONSE] ${method} ${url} -> ${res.status}`);
+		} catch (e) {}
+		return res;
+	},
+	(err) => {
+		try {
+			const cfg = err.config || {};
+			const method = (cfg.method || "GET").toUpperCase();
+			const url = (cfg.baseURL || "") + (cfg.url || "");
+			console.error(`[API ERROR] ${method} ${url} -> ${err.message}`);
+		} catch (e) {}
+		return Promise.reject(err);
+	}
+);

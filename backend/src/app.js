@@ -83,6 +83,21 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// If an API route was not found, return JSON 404 instead of HTML
+app.use("/api", (req, res) => {
+  res.status(404).json({ success: false, message: "API route not found" });
+});
+
+// Global error handler to return JSON errors
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
+
 export default app;
 
 

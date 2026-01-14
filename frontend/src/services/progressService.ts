@@ -1,8 +1,7 @@
 import { auth } from "@/config/firebase";
+import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
-  ? `${String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, '')}/progress`
-  : "https://studysyncai-xc64.onrender.com/progress";
+const API_PREFIX = "/progress"; // will be combined with axios base (/api or host/api)
 
 /* ---------------- METRICS ---------------- */
 export const getProgressMetrics = async () => {
@@ -10,18 +9,10 @@ export const getProgressMetrics = async () => {
   if (!user) throw new Error("User not logged in");
 
   const token = await user.getIdToken();
-
-  const res = await fetch(`${API_BASE}/metrics`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  const { data } = await axios.get(`${API_PREFIX}/metrics`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch progress metrics");
-  }
-
-  return res.json();
+  return data;
 };
 
 /* ---------------- BADGES ---------------- */
@@ -30,18 +21,10 @@ export const getProgressBadges = async () => {
   if (!user) throw new Error("User not logged in");
 
   const token = await user.getIdToken();
-
-  const res = await fetch(`${API_BASE}/badges`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  const { data } = await axios.get(`${API_PREFIX}/badges`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch badges");
-  }
-
-  return res.json();
+  return data;
 };
 
 /* ---------------- FOCUS COMPLETE ---------------- */
@@ -50,19 +33,10 @@ export const completeFocusSession = async (minutes: number) => {
   if (!user) throw new Error("User not logged in");
 
   const token = await user.getIdToken();
-
-  const res = await fetch(`${API_BASE}/focus-complete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ minutes })
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to save focus session");
-  }
-
-  return res.json();
+  const { data } = await axios.post(
+    `${API_PREFIX}/focus-complete`,
+    { minutes },
+    { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+  );
+  return data;
 };

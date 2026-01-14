@@ -1,10 +1,7 @@
-// Build a consistent base URL for the zombie API. If `VITE_API_URL` is provided
-// (e.g. "http://localhost:5000"), append the API mount path so requests
-// go to `${VITE_API_URL}/api/zombie`. Otherwise default to the relative
-// `/api/zombie` path which works with the dev proxy or same-origin hosting.
-const API_BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/zombie`
-  : '/api/zombie';
+import axios from "axios";
+
+// Use shared axios base; call zombie endpoints under `/zombie` so global base `/api` + `/zombie` -> `/api/zombie`
+const API_PREFIX = "/zombie";
 
 export interface Survivor {
   id: number;
@@ -40,12 +37,8 @@ export type DecisionType = 'shelter' | 'food' | 'allies' | 'rest';
 
 // Create new survivor
 export const createSurvivor = async (name: string): Promise<{ survivor: Survivor }> => {
-  const response = await fetch(`${API_BASE}/survivors`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-  return response.json();
+  const { data } = await axios.post(`${API_PREFIX}/survivors`, { name });
+  return data;
 };
 
 // Make decision
@@ -53,18 +46,14 @@ export const makeDecision = async (
   survivorId: number,
   decision: DecisionType
 ): Promise<{ survivor: Survivor; message: string; scoreGain: number; zombieEvent: boolean }> => {
-  const response = await fetch(`${API_BASE}/survivors/${survivorId}/decisions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision })
-  });
-  return response.json();
+  const { data } = await axios.post(`${API_PREFIX}/survivors/${survivorId}/decisions`, { decision });
+  return data;
 };
 
 // Get leaderboard
 export const getLeaderboard = async (): Promise<{ leaderboard: LeaderboardEntry[]; total: number }> => {
-  const response = await fetch(`${API_BASE}/leaderboard`);
-  return response.json();
+  const { data } = await axios.get(`${API_PREFIX}/leaderboard`);
+  return data;
 };
 
 // Add to leaderboard
@@ -74,10 +63,6 @@ export const addToLeaderboard = async (entry: {
   days: number;
   survived: boolean;
 }): Promise<{ entry: LeaderboardEntry }> => {
-  const response = await fetch(`${API_BASE}/leaderboard`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(entry)
-  });
-  return response.json();
+  const { data } = await axios.post(`${API_PREFIX}/leaderboard`, entry);
+  return data;
 };

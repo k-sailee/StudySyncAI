@@ -9,6 +9,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users } from "lucide-react";
+import axios from "axios";
 import GroupChatPage from "./GroupChat";
 
 // local subject -> gradient helper (same logic as StudyGroupCard)
@@ -48,9 +49,8 @@ export default function StudyGroupsPage() {
     try {
       if (!user) throw new Error("Not authenticated");
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/`, { headers: { Authorization: `Bearer ${token || ""}` } });
-      const data = await res.json();
-      if (res.ok) {
+      const { data } = await axios.get(`/studygroups/`, { headers: { Authorization: `Bearer ${token || ""}` } });
+      if (data) {
         let list = data.groups || [];
         // client-side filter: public/my groups/all
         if (filter === "public") list = list.filter((g) => g.visibility === "public");
@@ -73,9 +73,8 @@ export default function StudyGroupsPage() {
       setCreating(true);
       if (!user) throw new Error("Not authenticated");
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` }, body: JSON.stringify({ name, subject, visibility: "public" }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Failed to create");
+      const { data } = await axios.post(`/studygroups/`, { name, subject, visibility: "public" }, { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` } });
+      if (!data) throw new Error(data?.message || "Failed to create");
       toast({ title: "Created", description: "Study group created" });
       setName(""); setSubject("");
       fetchGroups();
@@ -109,9 +108,8 @@ export default function StudyGroupsPage() {
       }
 
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/${id}/join`, { method: "POST", headers: { Authorization: `Bearer ${token || ""}` } });
-      const d = await res.json();
-      if (!res.ok) {
+      const { data: d } = await axios.post(`/studygroups/${id}/join`, null, { headers: { Authorization: `Bearer ${token || ""}` } });
+      if (!d) {
         // rollback optimistic changes
         setGroups(prev);
         if (selectedGroup?.id === id) {
@@ -137,9 +135,9 @@ export default function StudyGroupsPage() {
       setJoiningId(id);
       if (!user) throw new Error("Not authenticated");
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token || ""}` } });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d?.message || "Failed to delete");
+      const response = await axios.delete(`/studygroups/${id}`, { headers: { Authorization: `Bearer ${token || ""}` } });
+      const d = response.data;
+      if (response.status >= 400) throw new Error(d?.message || "Failed to delete");
       toast({ title: "Deleted", description: d.message || "Group deleted" });
       fetchGroups();
     } catch (err) {
@@ -158,9 +156,8 @@ export default function StudyGroupsPage() {
       setAdminProfile(null);
 
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/${id}`, { headers: { Authorization: `Bearer ${token || ""}` } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Failed to load group");
+      const { data } = await axios.get(`/studygroups/${id}`, { headers: { Authorization: `Bearer ${token || ""}` } });
+      if (!data) throw new Error(data?.message || "Failed to load group");
 
       const group = data.group;
       // include backend-provided isMember flag so embedded chat knows membership immediately
@@ -168,9 +165,8 @@ export default function StudyGroupsPage() {
 
       // fetch admin profile
       try {
-        const adminRes = await fetch(`/api/users/${group.organizerId}`);
-        const adminData = await adminRes.json();
-        if (adminRes.ok) setAdminProfile(adminData.user);
+        const { data: adminData } = await axios.get(`/users/${group.organizerId}`);
+        if (adminData) setAdminProfile(adminData.user);
       } catch (e) {
         console.warn('Failed to fetch admin profile', e);
       }
@@ -179,9 +175,8 @@ export default function StudyGroupsPage() {
       const members = data.members || [];
       const profs = await Promise.all(members.slice(0,30).map(async (m) => {
         try {
-          const r = await fetch(`/api/users/${m.userId}`);
-          const jd = await r.json();
-          if (r.ok) return { uid: m.userId, displayName: jd.user?.displayName || m.userId, role: m.role };
+          const { data: jd } = await axios.get(`/users/${m.userId}`);
+          return { uid: m.userId, displayName: jd.user?.displayName || m.userId, role: m.role };
         } catch (e) {
           return { uid: m.userId, displayName: m.userId, role: m.role };
         }
@@ -249,9 +244,8 @@ export default function StudyGroupsPage() {
       }
 
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`/api/studygroups/${id}/leave`, { method: 'POST', headers: { Authorization: `Bearer ${token || ''}` } });
-      const d = await res.json();
-      if (!res.ok) {
+      const { data: d } = await axios.post(`/studygroups/${id}/leave`, null, { headers: { Authorization: `Bearer ${token || ''}` } });
+      if (!d) {
         // rollback optimistic changes
         setGroups(prev);
         if (selectedGroup?.id === id) {

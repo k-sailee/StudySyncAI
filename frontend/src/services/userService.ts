@@ -86,17 +86,13 @@ export const searchUsers = async (
   } catch (primaryError) {
     console.error("Primary search request failed:", primaryError);
 
-    // Fallback: try same-origin /api path (useful in preview/proxy environments)
+    // Fallback: try same-origin /api path or explicit origin (use axios so interceptors/logging apply)
     try {
       if (typeof window !== "undefined") {
         const origin = window.location.origin;
         const fallbackUrl = `${origin}/api/users/search?${params.toString()}`;
-        const res = await fetch(fallbackUrl, { method: "GET", headers: { "Content-Type": "application/json" } });
-        if (res.ok) {
-          const data = await res.json();
-          return data.results || [];
-        }
-        console.error("Fallback search request failed (non-OK):", res.status, await res.text());
+        const { data } = await (await import('axios')).default.get(fallbackUrl, { headers: { 'Content-Type': 'application/json' } });
+        return data.results || [];
       }
     } catch (fallbackError) {
       console.error("Fallback search request failed:", fallbackError);

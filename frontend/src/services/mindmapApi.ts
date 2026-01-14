@@ -1,6 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-
+import axios from 'axios';
 import { auth } from '../config/firebase';
+const API_PREFIX = '/mindmaps';
 
 interface MindMapNode {
   id: string;
@@ -48,50 +48,31 @@ const getAuthHeader = async () => {
 export const mindmapApi = {
   // Get all mind maps
   getAll: async (): Promise<MindMapListItem[]> => {
-    const response = await fetch(`${API_URL}/mindmaps`, {
-      headers: await getAuthHeader()
-    });
-    if (!response.ok) throw new Error('Failed to fetch mind maps');
-    return response.json();
+    const { data } = await axios.get(`${API_PREFIX}`, { headers: await getAuthHeader() });
+    return data;
   },
 
   // Get a specific mind map
   get: async (id: string): Promise<MindMap> => {
-    const response = await fetch(`${API_URL}/mindmaps/${id}`, {
-      headers: await getAuthHeader()
-    });
-    if (!response.ok) throw new Error('Failed to fetch mind map');
-    return response.json();
+    const { data } = await axios.get(`${API_PREFIX}/${id}`, { headers: await getAuthHeader() });
+    return data;
   },
 
   // Create a new mind map
   create: async (title: string, nodes: MindMapNode[]): Promise<MindMap> => {
-    const response = await fetch(`${API_URL}/mindmaps`, {
-      method: 'POST',
-      headers: await getAuthHeader(),
-      body: JSON.stringify({ title, nodes })
-    });
-    if (!response.ok) throw new Error('Failed to create mind map');
-    return response.json();
+    const { data } = await axios.post(`${API_PREFIX}`, { title, nodes }, { headers: await getAuthHeader() });
+    return data;
   },
 
   // Update a mind map
   update: async (id: string, title: string, nodes: MindMapNode[]): Promise<MindMap> => {
-    const response = await fetch(`${API_URL}/mindmaps/${id}`, {
-      method: 'PUT',
-      headers: await getAuthHeader(),
-      body: JSON.stringify({ title, nodes })
-    });
-    if (!response.ok) throw new Error('Failed to update mind map');
-    return response.json();
+    const { data } = await axios.put(`${API_PREFIX}/${id}`, { title, nodes }, { headers: await getAuthHeader() });
+    return data;
   },
 
   // Delete a mind map
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/mindmaps/${id}`, {
-      method: 'DELETE',
-      headers: await getAuthHeader()
-    });
-    if (!response.ok) throw new Error('Failed to delete mind map');
+    const response = await axios.delete(`${API_PREFIX}/${id}`, { headers: await getAuthHeader() });
+    if (response.status >= 400) throw new Error('Failed to delete mind map');
   }
 };
