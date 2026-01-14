@@ -13,7 +13,8 @@ export default function ContactSupportPage() {
   const { toast } = useToast();
   const [name, setName] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [role, setRole] = useState(user?.role || "student");
+  type Role = "student" | "teacher";
+  const [role, setRole] = useState<Role>((user?.role as Role) ?? "student");
   const [category, setCategory] = useState("General");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +66,7 @@ export default function ContactSupportPage() {
 
             <div>
               <label className="text-sm text-muted-foreground">Role</label>
-              <Select value={role} onValueChange={(val) => setRole(val)}>
+              <Select value={role} onValueChange={(val) => setRole(val as Role)}>
                 <SelectTrigger>
                   <SelectValue>{role}</SelectValue>
                 </SelectTrigger>
