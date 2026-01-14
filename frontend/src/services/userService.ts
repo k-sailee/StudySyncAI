@@ -83,7 +83,7 @@ export const searchUsers = async (
     try {
       const backendBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
       const fallbackUrl = `${backendBase.replace(/\/+$/,'')}/api/users/search?${params.toString()}`;
-      const { data } = await (await import("axios")).default.get(fallbackUrl, { headers: { "Content-Type": "application/json" } });
+      const { data } = await (await import("@/lib/api")).api.get(fallbackUrl); 
       return data.results || [];
     } catch (fallbackError) {
       console.error("Fallback search request failed:", fallbackError);

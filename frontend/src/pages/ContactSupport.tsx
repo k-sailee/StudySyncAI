@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { api } from "@/lib/api";
 
 export default function ContactSupportPage() {
   const { user } = useAuth();
@@ -19,12 +19,12 @@ export default function ContactSupportPage() {
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const submit = async (e) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
       // Use shared axios instance (setupAxios.ts) so baseURL includes /api when configured
-      const res = await axios.post("/support/send", { name, email, role, category, message }, { headers: { "Content-Type": "application/json" } });
+      const res = await api.post("/support/send", { name, email, role, category, message });
       const data = res.data || {};
       if (res.status >= 400 || data?.error) throw new Error(data?.error || "Unknown error");
       toast({ title: "Message sent", description: "Support will contact you shortly." });

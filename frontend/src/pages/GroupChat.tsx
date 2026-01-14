@@ -4,7 +4,7 @@ import { db } from "@/config/firebase";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { auth as fbAuth } from "@/config/firebase";
-import axios from "axios";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Props = {
@@ -42,7 +42,7 @@ export default function GroupChatPage({ groupId: propGroupId, initialGroup, init
       (async () => {
         try {
           const token = await fbAuth.currentUser?.getIdToken();
-          const { data } = await axios.get(`/studygroups/${id}`, { headers: { Authorization: `Bearer ${token || ""}` } });
+          const { data } = await api.get(`/studygroups/${id}`, { headers: { Authorization: `Bearer ${token || ""}` } });
           if (!data) throw new Error("Failed to load group");
           setGroup(data.group);
           setIsMember(Boolean(data.isMember));
@@ -79,7 +79,7 @@ export default function GroupChatPage({ groupId: propGroupId, initialGroup, init
   const handleJoin = async () => {
     try {
       const token = await fbAuth.currentUser?.getIdToken();
-      const { data: d } = await axios.post(`/studygroups/${id}/join`, null, { headers: { Authorization: `Bearer ${token || ""}` } });
+      const { data: d } = await api.post(`/studygroups/${id}/join`, null, { headers: { Authorization: `Bearer ${token || ""}` } });
       if (!d) throw new Error(d?.message || 'Failed to join');
       setIsMember(true);
       setMembers((prev) => [...prev, { uid: user?.uid, displayName: user?.displayName || user?.uid, role: 'member' }]);
@@ -94,7 +94,7 @@ export default function GroupChatPage({ groupId: propGroupId, initialGroup, init
   const handleLeave = async () => {
     try {
       const token = await fbAuth.currentUser?.getIdToken();
-      const { data: d } = await axios.post(`/studygroups/${id}/leave`, null, { headers: { Authorization: `Bearer ${token || ""}` } });
+      const { data: d } = await api.post(`/studygroups/${id}/leave`, null, { headers: { Authorization: `Bearer ${token || ""}` } });
       if (!d) throw new Error(d?.message || 'Failed to leave');
       if (unsubRef.current) unsubRef.current();
         // If parent provided a handler for leave (embedded), call it so parent can update UI and close sheet.
@@ -117,7 +117,7 @@ export default function GroupChatPage({ groupId: propGroupId, initialGroup, init
     try {
       setSending(true);
       const token = await fbAuth.currentUser?.getIdToken();
-      const { data: d } = await axios.post(`/studygroups/${id}/messages`, { text: text.trim() }, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ""}` } });
+      const { data: d } = await api.post(`/studygroups/${id}/messages`, { text: text.trim() }, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ""}` } });
       if (!d) throw new Error(d?.message || 'Failed to send');
       setText('');
     } catch (err) {
