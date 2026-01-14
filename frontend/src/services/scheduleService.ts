@@ -1,11 +1,18 @@
 import axios from "axios";
 import { auth } from "@/config/firebase";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
+const buildSchedulerBase = (raw: string) => {
+  const trimmed = String(raw).replace(/\/+$/, "");
+  if (!trimmed) return "/api/scheduler";
+  if (trimmed === "/api") return "/api/scheduler";
+  if (trimmed.endsWith("/api")) return `${trimmed}/scheduler`;
+  return `${trimmed}/api/scheduler`;
+};
 
 const API = axios.create({
-  baseURL: `${API_BASE_URL}/api/scheduler`,
+  baseURL: buildSchedulerBase(RAW_API_BASE),
 });
 
 // Add auth token to requests
