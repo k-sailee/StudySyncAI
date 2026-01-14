@@ -31,9 +31,9 @@ export const ScheduleProvider = ({ children }: { children: React.ReactNode }) =>
 
 const today = new Date().toISOString().split("T")[0];
 
-const todayClassesCount = classes.filter(
-  (cls) => cls.date === today
-).length;
+const todayClassesCount = Array.isArray(classes)
+  ? classes.filter((cls) => cls.date === today).length
+  : 0;
 
   // ✅ LOAD CLASSES FROM BACKEND
   useEffect(() => {
@@ -45,12 +45,12 @@ const todayClassesCount = classes.filter(
             console.log("[FRONTEND] Loading teacher classes from Firestore...");
           const data = await getTeacherClasses(user.email!);
           console.log("[FRONTEND] Teacher classes loaded:", data);
-          setClasses(data);
+          setClasses(Array.isArray(data) ? data : []);
         } else {
             console.log("[FRONTEND] Loading student classes from Firestore...");
           const data = await getStudentClasses(user.uid);
           console.log("[FRONTEND] Student classes loaded:", data);
-          setClasses(data);
+          setClasses(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("Failed to load classes", err);
@@ -73,7 +73,7 @@ const addClass = async (cls: ScheduledClass) => {
     // Reload from backend instead
     if (user?.role === "teacher") {
       const data = await getTeacherClasses(user.email!);
-      setClasses(data);
+      setClasses(Array.isArray(data) ? data : []);
     }
   } catch (err) {
     console.error("Failed to save class", err);
