@@ -7,49 +7,67 @@ const SMTP_PASS = process.env.SMTP_PASS;
 const SUPPORT_RECEIVER = process.env.SUPPORT_RECEIVER || "p22724439@gmail.com";
 
 function validateEmail(email) {
-  // simple validation
   return typeof email === "string" && /\S+@\S+\.\S+/.test(email);
 }
 
+// Fail-safe support handler with verbose instrumentation to surface errors in logs
 export async function sendSupportEmail(req, res) {
+  console.log("Support request body:", req.body);
+  console.log("SMTP config present:", {
+    hasHost: Boolean(SMTP_HOST),
+    hasPort: Boolean(SMTP_PORT),
+    hasUser: Boolean(SMTP_USER),
+    hasPass: Boolean(SMTP_PASS),
+    supportReceiver: SUPPORT_RECEIVER,
+  });
+
   try {
     const { name, email, role, category, message } = req.body || {};
 
     if (!name || !email || !role || !category || !message) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     if (!validateEmail(email)) {
-      return res.status(400).json({ error: "Invalid email address" });
+      return res.status(400).json({ success: false, message: "Invalid email address" });
     }
 
     let transporter;
     let usedTestAccount = false;
 
+    // Create transporter using provided SMTP credentials when available
     if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
-      transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: SMTP_PORT === 465, // true for 465, false for other ports
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS,
-        },
-      });
-    } else {
-      // Development fallback: create an Ethereal test account so devs can see a preview URL
-      console.warn("SMTP env vars missing — falling back to nodemailer test account (ethereal)");
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: testAccount.smtp.host,
-        port: testAccount.smtp.port,
-        secure: testAccount.smtp.secure,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-      usedTestAccount = true;
+      try {
+        console.log("Creating SMTP transporter using provided env vars");
+        transporter = nodemailer.createTransport({
+          host: SMTP_HOST,
+          port: SMTP_PORT,
+          secure: SMTP_PORT === 465,
+          auth: { user: SMTP_USER, pass: SMTP_PASS },
+        });
+      } catch (e) {
+        console.error("Failed to create transporter from SMTP envs:", e);
+        transporter = undefined;
+      }
+    }
+
+    // If transporter not created, fallback to Ethereal test account (dev)
+    if (!transporter) {
+      try {
+        console.warn("SMTP transporter not configured properly — falling back to test account");
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: testAccount.smtp.host,
+          port: testAccount.smtp.port,
+          secure: testAccount.smtp.secure,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        });
+        usedTestAccount = true;
+      } catch (e) {
+        console.error("Failed to create nodemailer test account:", e);
+        // Still return a safe JSON error rather than letting the handler crash
+        return res.status(500).json({ success: false, message: "Support failed", error: e.message });
+      }
     }
 
     const subject = `[Support] ${category} — ${name} (${role})`;
@@ -60,24 +78,49 @@ export async function sendSupportEmail(req, res) {
     <hr />
     <p>${message.replace(/\n/g, "<br/>")}</p>`;
 
-    const info = await transporter.sendMail({
-      from: `${name} <${SMTP_USER}>`,
-      to: SUPPORT_RECEIVER,
-      subject,
-      html,
-      replyTo: email,
-    });
+    // Instrument before sending
+    console.log("About to send support email, using transporter", { usedTestAccount });
 
-    console.log("Support email sent:", info.messageId);
-    const result = { ok: true, messageId: info.messageId };
-    if (usedTestAccount) {
-      const preview = nodemailer.getTestMessageUrl(info);
-      console.log("Preview URL:", preview);
-      result.previewUrl = preview;
+    let info;
+    try {
+      info = await transporter.sendMail({
+        from: `${name} <${SMTP_USER || SUPPORT_RECEIVER}>`,
+        to: SUPPORT_RECEIVER,
+        subject,
+        html,
+        replyTo: email,
+      });
+    } catch (sendErr) {
+      console.error("Error during transporter.sendMail:", sendErr);
+      return res.status(500).json({ success: false, message: "Support failed", error: sendErr.message });
     }
+
+    console.log("Support email sent:", info && info.messageId);
+    const result = { success: true, messageId: info?.messageId };
+    if (usedTestAccount) {
+      try {
+        const preview = nodemailer.getTestMessageUrl(info);
+        console.log("Preview URL:", preview);
+        result.previewUrl = preview;
+      } catch (e) {
+        console.warn("Failed to get test preview URL:", e);
+      }
+    }
+
     return res.json(result);
-  } catch (err) {
-    console.error("Error sending support email:", err);
-    return res.status(500).json({ error: "Failed to send support message" });
+  } catch (error) {
+    console.error("Support API error:", error);
+    return res.status(500).json({ success: false, message: "Support failed", error: error?.message || String(error) });
   }
 }
+
+// Temporary test handler — returns success without sending email
+export const sendSupportEmailTest = async (req, res) => {
+  try {
+    console.log("Support payload (test):", req.body);
+    return res.json({ success: true, message: "Support API working (test mode)" });
+  } catch (err) {
+    console.error("Support test handler error:", err);
+    return res.status(500).json({ success: false, error: err?.message || String(err) });
+  }
+};
