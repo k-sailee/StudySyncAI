@@ -20,7 +20,8 @@ const app = express();
 
 // ✅ Configurable CORS - allow FRONTEND_URL or comma-separated FRONTEND_URLS
 const allowedOrigins = [
-  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://study-sync-ai-nine.vercel.app",
   process.env.FRONTEND_URL,
   ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(",") : []),
 ]
@@ -70,7 +71,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/studygroups", studyGroupsRoutes);
 app.use("/api/groups", groupsRoutes);
 app.use("/api/live-sessions", liveSessionsRoutes);
-app.use("/progress", progressRoutes);
+app.use("/api/progress", progressRoutes);
 app.use("/api/zombie", zombieGameRoutes);
 app.use("/api/mindmaps", mindmapsRoutes);
 app.use("/api/notifications", notificationRoutes);
