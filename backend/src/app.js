@@ -18,19 +18,25 @@ import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
-// ✅ Single CORS config
+// ✅ Configurable CORS - allow FRONTEND_URL or comma-separated FRONTEND_URLS
+const allowedOrigins = [
+  "http://localhost:8080",
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(",") : []),
+]
+  .map((u) => (typeof u === "string" ? u.trim() : u))
+  .filter(Boolean);
+
+console.log("CORS allowed origins:", allowedOrigins);
+
 const corsOptions = {
-  origin: [
-    "http://localhost:8080",
-    process.env.FRONTEND_URL,
-  ],
+  origin: allowedOrigins,
   credentials: true,
 };
 
-// ✅ Apply CORS
 app.use(cors(corsOptions));
 
-// ✅ Handle preflight properly
+// Handle preflight properly
 app.options("*", cors(corsOptions));
 
 app.use(express.json());
