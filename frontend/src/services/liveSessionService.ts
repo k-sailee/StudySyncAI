@@ -2,10 +2,22 @@ import axios from "axios";
 
 // Use same-origin proxy in dev/preview (Vite config proxies /api → backend)
 // For production builds, set VITE_API_BASE_URL to your backend base.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
+const buildLiveSessionsBase = (raw: string) => {
+  const trimmed = raw.replace(/\/+$/, "");
+  // No explicit base provided → use dev proxy path
+  if (!trimmed) return "/api/live-sessions";
+  // If the provided base is exactly "/api" → use dev proxy path
+  if (trimmed === "/api") return "/api/live-sessions";
+  // If provided base already ends with /api (eg. https://host/api)
+  if (trimmed.endsWith("/api")) return `${trimmed}/live-sessions`;
+  // Otherwise assume base is host root and append /api
+  return `${trimmed}/api/live-sessions`;
+};
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api/live-sessions`,
+  baseURL: buildLiveSessionsBase(String(RAW_API_BASE)),
   headers: { "Content-Type": "application/json" },
 });
 
