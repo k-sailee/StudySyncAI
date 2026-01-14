@@ -1,11 +1,8 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
-
+// Use shared axios base (setupAxios.ts) so baseURL already points to /api when configured
 export const getStudentNotifications = async (studentId: string) => {
-  const res = await axios.get(
-    `${API_BASE}/api/notifications?studentId=${studentId}`
-  );
+  const res = await axios.get(`/notifications`, { params: { studentId } });
   return res.data;
 };
 
@@ -13,7 +10,5 @@ export const deleteNotification = async (
   studentId: string,
   notificationId: string
 ) => {
-  await axios.delete(
-    `${API_BASE}/api/notifications/${studentId}/${notificationId}`
-  );
+  await axios.delete(`/notifications/${studentId}/${notificationId}`);
 };

@@ -79,14 +79,12 @@ export const searchUsers = async (
   } catch (primaryError) {
     console.error("Primary search request failed:", primaryError);
 
-    // Fallback: try same-origin /api path or explicit origin (use axios so interceptors/logging apply)
+    // Fallback: use configured backend URL if available, otherwise same-origin
     try {
-      if (typeof window !== "undefined") {
-        const origin = window.location.origin;
-        const fallbackUrl = `${origin}/api/users/search?${params.toString()}`;
-        const { data } = await (await import('axios')).default.get(fallbackUrl, { headers: { 'Content-Type': 'application/json' } });
-        return data.results || [];
-      }
+      const backendBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const fallbackUrl = `${backendBase.replace(/\/+$/,'')}/api/users/search?${params.toString()}`;
+      const { data } = await (await import("axios")).default.get(fallbackUrl, { headers: { "Content-Type": "application/json" } });
+      return data.results || [];
     } catch (fallbackError) {
       console.error("Fallback search request failed:", fallbackError);
     }

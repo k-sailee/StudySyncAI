@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 export default function ContactSupportPage() {
   const { user } = useAuth();
@@ -22,13 +23,10 @@ export default function ContactSupportPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/support/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, role, category, message }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Unknown error");
+      // Use shared axios instance (setupAxios.ts) so baseURL includes /api when configured
+      const res = await axios.post("/support/send", { name, email, role, category, message }, { headers: { "Content-Type": "application/json" } });
+      const data = res.data || {};
+      if (res.status >= 400 || data?.error) throw new Error(data?.error || "Unknown error");
       toast({ title: "Message sent", description: "Support will contact you shortly." });
       setMessage("");
       if (data?.previewUrl) {
@@ -38,9 +36,9 @@ export default function ContactSupportPage() {
       } else {
         setPreviewUrl(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast({ title: "Error", description: err.message || "Failed to send message", variant: "destructive" });
+      toast({ title: "Error", description: err.response?.data?.error || err.message || "Failed to send message", variant: "destructive" });
     } finally {
       setLoading(false);
     }
