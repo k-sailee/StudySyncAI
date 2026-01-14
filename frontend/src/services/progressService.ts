@@ -1,6 +1,8 @@
 import { auth } from "@/config/firebase";
 
-const API_BASE = "http://localhost:5000/progress";
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, '')}/progress`
+  : "https://studysyncai-xc64.onrender.com/progress";
 
 /* ---------------- METRICS ---------------- */
 export const getProgressMetrics = async () => {

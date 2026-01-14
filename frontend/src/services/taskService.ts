@@ -5,7 +5,7 @@ const RAW_API_BASE = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 
 const normalizeBaseHost = (raw: string) => {
   const trimmed = String(raw).replace(/\/+$/, "");
-  if (!trimmed) return "http://localhost:5000/api";
+  if (!trimmed) return "https://studysyncai-xc64.onrender.com/api";
   if (trimmed === "/api") return "/api";
   if (trimmed.endsWith("/api")) return trimmed;
   if (trimmed.includes("://")) return `${trimmed}/api`;

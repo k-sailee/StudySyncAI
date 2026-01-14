@@ -29,19 +29,37 @@ const allowedOrigins = [
 
 console.log("CORS allowed origins:", allowedOrigins);
 
+// CORS options: allow methods and headers explicitly.
 const corsOptions = {
   origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
 
-// Handle preflight properly
-app.options("*", cors(corsOptions));
+// Manual fallback for older clients / debug: set headers and handle OPTIONS
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  }
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(express.json());
 
 // Routes
+// Temporary compatibility: also accept requests without the /api prefix
+app.use("/connections", connectionsRoutes);
+
 app.use("/api/ai", aiRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/connections", connectionsRoutes);
