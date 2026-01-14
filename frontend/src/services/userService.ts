@@ -2,16 +2,9 @@ import axios from "axios";
 import { db } from "@/config/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth } from "@/config/firebase";
-// Use same-origin proxy (/api) in dev/preview to avoid CORS; allow override via VITE_API_BASE_URL for production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+// Use the shared axios instance configured in `setupAxios.ts` so the
+// normalized `/api` base is applied consistently across the app.
+const api = axios;
 export type ProfessionalDetails = {
   class?: string;
   dob?: string;
