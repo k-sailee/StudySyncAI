@@ -419,7 +419,7 @@ function formatDeadline(deadline: any): string {
         return;
       }
 
-      const response = await axios.post("/api/scheduler/generate", {
+      const response = await axios.post("/scheduler/generate", {
         dailySchedule: validSchedule,
         taskList,
       });

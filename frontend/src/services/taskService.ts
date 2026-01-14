@@ -1,9 +1,18 @@
 import axios from "axios";
 import { auth } from "@/config/firebase";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const RAW_API_BASE = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 
-const API_URL = `${API_BASE_URL}/api/tasks`;
+const normalizeBaseHost = (raw: string) => {
+  const trimmed = String(raw).replace(/\/+$/, "");
+  if (!trimmed) return "http://localhost:5000/api";
+  if (trimmed === "/api") return "/api";
+  if (trimmed.endsWith("/api")) return trimmed;
+  if (trimmed.includes("://")) return `${trimmed}/api`;
+  return `${trimmed}/api`;
+};
+
+const API_URL = `${normalizeBaseHost(RAW_API_BASE)}/tasks`;
 
 export const getMyTasks = async () => {
   const user = auth.currentUser;

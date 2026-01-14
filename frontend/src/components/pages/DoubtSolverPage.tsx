@@ -66,7 +66,7 @@ export function DoubtSolverPage() {
 
   try {
     const response = await axios.post(
-      "/api/ai/ask",
+      "/ai/ask",
       { message: inputValue }
     );
 
